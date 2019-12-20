@@ -6,6 +6,9 @@ By Helge Egil Seime Pettersen, Haukeland University Hospital, 2019.
 
 The program consists of a single window with some dialog options. Most of the buttons and options are documented with a tooltip, accessed by holding the pointer above the wanted option. All settings are saved upon exiting.
 
+Current version: 1.35
+(The readme is intended for 1.0, so some features need more documenting -- watch this space)
+
 # FILE options
 Before loading any patient / cohort folders containing CVS or ECLIPSE DVH files, the files to be opened has to be configured using the «OPTIONS» part of the window. First, the file type has to be selected:
 - CSV files: A simple CSV file is a DVH file that is either comma or semicolon separated, containing the columns «Dose» and «Volume». It is configured by choosing whether it is comma separated with period decimals (x.y, x.y), or semicolon separated with comma decimals (x,y; x,y): the autodetect option chooses semicolon if any are detected in the first line. Then, the columns has to be chosen. Use a comma-separated list without whitespace. The two columns «Dose» and «Volume» are read out from the CSV file, so if they are the 3. and 4. columns you can write «,,Dose,Volume» or «DoseWrong,VolumeWrong,Dose,Volume» etc. The dose unit is chosen below, either cGy or Gy. If the autodetect options is used, then cGy is chosen if any of the entries in the dose column exceeds «1000». If the CSV file contains a header row, skip this by choosing the correct options (skip = 1).
