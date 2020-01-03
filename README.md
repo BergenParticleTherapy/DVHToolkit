@@ -76,6 +76,11 @@ Where ![](https://latex.codecogs.com/svg.latex?\hat\theta_{L,U}) are the upper a
 After calculation of the confidence intervals, a second calculation of the NTCP models button will display the confidence limits. If the “display each BS model within NTCP CI” option is used, all the individual models (that are within the LLH CI) are drawn on top of the shaded NTCP CI. The error band calculated from the span of bootstrapped models within the confidence interval of the distribution of the variable of interest (TD50).
 ![NTCP with error](https://raw.githubusercontent.com/BergenParticleTherapy/DVHToolkit/master/figures/ntcpexamplewithuncertainty.PNG)
 
+# Comparing cohorts
+It is possible to compare two or more cohorts. This is done by successively appending the wanted data to the right pane, and performing the NTCP + bootstrap analysis; and then removing / adding a new data set and repeating the analysis. Now, the bootstrap window shows an additional plot with the differential TD50 distribution (for logit), and the NTCP/w error display shows both distributions:
+
+![NTCP compared](https://raw.githubusercontent.com/BergenParticleTherapy/DVHToolkit/master/figures/ntcpdouble.PNG)
+
 # Bibliography
 - [1]	W. McKinney, “Data Structures for Statistical Computing in Python,” in Proceedings of the 9th Python in Science Conference, 2010, pp. 51–56.
 - [2]	T. Boulé, M. I. G. Fuentes, J. V. Roselló, R. A. Lara, J. L. Torrecilla, and A. L. Plaza, “Clinical comparative study of dose–volume and equivalent uniform dose based predictions in post radiotherapy acute complications,” Acta Oncol., vol. 48, no. 7, pp. 1044–1053, Jan. 2009.
