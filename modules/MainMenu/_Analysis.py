@@ -8,6 +8,8 @@ from math import *
 from tkinter import *
 from tkinter import ttk
 
+from ..Patients import *
+
 def calculateDVHvalues(self):
     # Add here for specific organ-specific gEUD calculations to DVH output file
     nValues = {'Bladder' : 1/8, 'Rectum' : 1/12, 'Intestine' : 1/4}
