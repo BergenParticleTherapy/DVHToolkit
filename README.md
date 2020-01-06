@@ -6,28 +6,30 @@ By Helge Egil Seime Pettersen, Haukeland University Hospital, 2019.
 
 The program consists of a single window with some dialog options. Most of the buttons and options are documented with a tooltip, accessed by holding the pointer above the wanted option. All settings are saved upon exiting.
 
-Current version: 1.4
+Current version: 1.41
 
 ![main window](https://raw.githubusercontent.com/BergenParticleTherapy/DVHToolkit/master/figures/mainwindow.PNG)
 
 # FILE options
-Before loading any patient / cohort folders containing CVS or ECLIPSE DVH files, the files to be opened has to be configured using the «OPTIONS» part of the window. First, the file type has to be selected:
+Before loading any patient / cohort folders containing CVS or ECLIPSE DVH files, the files to be opened has to be configured using the «FILE OPTIONS» part of the window. First, the file type has to be selected:
 - CSV files: A simple CSV file is a DVH file that is either comma or semicolon separated, containing the columns «Dose» and «Volume». It is configured by choosing whether it is comma separated with period decimals (x.y, x.y), or semicolon separated with comma decimals (x,y; x,y): the autodetect option chooses semicolon if any are detected in the first line. Then, the columns has to be chosen. Use a comma-separated list without whitespace. The two columns «Dose» and «Volume» are read out from the CSV file, so if they are the 3. and 4. columns you can write «,,Dose,Volume» or «DoseWrong,VolumeWrong,Dose,Volume» etc. The dose unit is chosen below, either cGy or Gy. If the autodetect options is used, then cGy is chosen if any of the entries in the dose column exceeds «1000». If the CSV file contains a header row, skip this by choosing the correct options (skip = 1).
-- ECLIPSE files: Most of the options here are similar, but in addition the program supports different organ structures. The file is read out, and all found structures are listed in a dialog when choosing the Load patient folder button. Write a string that matches the wanted structures («Brain» matches «Brain», «Whole Brain», «Brain L» etc.). Use a wildcard * to match several structures, and a pipe | to include several structures.
+- ECLIPSE files: Most of the options here are similar, but in addition the program supports different organ structures. The file is read out, and all found structures are listed in a dialog when choosing the Load patient folder button. Write a string that matches the wanted structures («Brain\*» matches «Brain», «Whole Brain», «Brain L» etc.): Use a wildcard **\*** to match several structures, and a pipe **|** to include several structures.
 ![Structure choice](https://raw.githubusercontent.com/BergenParticleTherapy/DVHToolkit/master/figures/structurechoice.PNG)
 
 The patient toxicity can either be given as another CVS file (to be called «cohort_tox.csv» in the folder above the cohort folder): This file should contain each patient by their filename and toxicity grade. If the patient contained in 1234.csv has grade 3, write a line «1234,3» in the file. Then, choose the wanted toxicity threshold in the program. (2 -> all patients with grade ≥2 are defined as having complications). It is also possible to load the toxicity from the filenames, so that any file with «tox» in the filename is defined as having toxicity. In that case, use toxicity limit 1.
 
-After these settings have been configured, load one or more patient cohorts using the Load patient folder button. This will open a file dialog, where you choose the folder containing the CSV files. The cohort name will be the name of the folder. All the added cohorts will be pooled to a single dataset. The validity of the loaded data may be controlled with the Show DVHs button: patients with tox are shown in red.
+After these settings have been configured, load one or more patient cohorts using the Load patient folder button. This will open a file dialog, where you choose the folder containing the CSV files. The cohort name will be the name of the folder. All the added cohorts will be pooled to a single dataset. The validity of the loaded data may be controlled with the **Show DVHs** button: patients with tox are shown in red.
 
-The loaded patient sets can be displayed with a range of options and groupings (per plan, per structure) etc. The show DVH button displays the following menu:
+The loaded patient sets can be displayed with a range of options and groupings (per plan, per structure) etc. The **show DVHs** button displays the following menu:
 ![dvhoptions](https://raw.githubusercontent.com/BergenParticleTherapy/DVHToolkit/master/figures/dvhoptions.PNG)
 
-In addition, certain % Dose or % Volume values can be calculated for each patient and stored in output CSV files for further use with the Calculate DVH values button. 
+The **Show Aggregated DVH Plot** button opens a window where all patients within a certain group (structure, plan) can be added together, showing the median / mean DVH for the given plan / structure.
 
-If the LKB model is to be used for calculations, a set of look-up-tables for the gEUD values must be calculated after loading the patient cohorts. This is only performed once per patient (per structure), and is done by clicking the Calculate gEUD splines button. The look-up-tables are stored as cubic splines in the cohort folder (subfolder gEUD), ensuring high interpolation accuracy for all values of n. 
+In addition, certain % Dose or % Volume values can be calculated for each patient and stored in output CSV files for further use with the **Save DVH values** button. 
 
-The Show gEUD(n) button can subsequently be used to display the different gEUD values as functions of n.
+If the LKB model is to be used for calculations, a set of look-up-tables for the gEUD values must be calculated after loading the patient cohorts. This is only performed once per patient (per structure), and is done by clicking the **Calculate gEUD splines** button. The look-up-tables are stored as cubic splines in the cohort folder (subfolder gEUD), ensuring high interpolation accuracy for all values of n. 
+
+The **Show gEUD/n** button can subsequently be used to display the different gEUD values as functions of n.
 
 # AUROC
 In order to identify the strength of different n values for the dataset, it is possible to calculate the AUROC: For each n value, check how many patients are correctly modelled with toxicity using a dose threshold based on their gEUD values (gEUD < threshold -> no tox; gEUD > threshold -> tox). The AUROC for this sensitivity and specificity for this n value calculated, and the n values are varied according to the limits chosen [2]. 
@@ -73,11 +75,11 @@ Using the bootstrap methods, a «pivot» interval can be used as improved CI [10
 ![](https://latex.codecogs.com/svg.latex?[\hat\theta_L,&space;\hat\theta_U]&space;\to&space;[2\hat\theta&space;-&space;\hat\theta_U,&space;2\hat\theta&space;-&space;\hat\theta_L]),
 Where ![](https://latex.codecogs.com/svg.latex?\hat\theta_{L,U}) are the upper and lower limits, respectively, and ![](https://latex.codecogs.com/svg.latex?\hat\theta) is the best estimate value from the original distribution. 
 
-After calculation of the confidence intervals, a second calculation of the NTCP models button will display the confidence limits. If the “display each BS model within NTCP CI” option is used, all the individual models (that are within the LLH CI) are drawn on top of the shaded NTCP CI. The error band calculated from the span of bootstrapped models within the confidence interval of the distribution of the variable of interest (TD50).
+After calculation of the confidence intervals, the **Calculate NTCP Model** button will display the confidence limits. If the “display each BS model within NTCP CI” option is used, all the individual models (that are within the LLH CI) are drawn on top of the shaded NTCP CI. The error band calculated from the span of bootstrapped models within the confidence interval of the distribution of the variable of interest (TD50).
 ![NTCP with error](https://raw.githubusercontent.com/BergenParticleTherapy/DVHToolkit/master/figures/ntcpexamplewithuncertainty.PNG)
 
 # Comparing cohorts
-It is possible to compare two or more cohorts. This is done by successively appending the wanted data to the right pane, and performing the NTCP + bootstrap analysis; and then removing / adding a new data set and repeating the analysis. Now, the bootstrap window shows an additional plot with the differential TD50 distribution (for logit), and the NTCP/w error display shows both distributions:
+It is possible to compare the NTCP output of two or more cohorts. This is done by adding the wanted data to the left pane, and performing the bootstrap analysis; and then removing / adding a new data set and repeating the analysis. Now, the bootstrap window shows an additional plot (don't close the first *NTCP model* window!) with the differential TD50 distribution (for logit), and the NTCP/w error display shows both distributions:
 
 ![NTCP compared](https://raw.githubusercontent.com/BergenParticleTherapy/DVHToolkit/master/figures/ntcpdouble.PNG)
 
