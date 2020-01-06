@@ -20,8 +20,6 @@ class Patients:
 
         self.plot = None
         self.ax1 = None
-        self.style1 = ["darkred", "darkblue", "k"]*100
-        self.style2 = ["r", "b", "k"]*100
 
     from ._Optimization import doGradientOptimization, doMatrixMinimization, profileLikelihood
     from ._Plotting import drawSigmoid, drawAUROC
@@ -201,7 +199,7 @@ class Patients:
                         patient.setCohort(self.dataFolder.split("/")[-1])
                         patient.setDataFolder(self.dataFolder)
                         patient.dvh["Dose"] = patient.dvh["Dose"] * doseUnit
-                        patient.setID("%s_%s_%s" % (patientName, patient.getPlan(), patient.getStructure()))
+                        patient.setID(f"{patientName}_{patient.getPlan()}_{patient.getStructure}")
                         patient.setMeanDoseFromEclipse(structure[3] * doseUnit)
                         patient.setMinDoseFromEclipse(structure[4] * doseUnit)
                         patient.setMaxDoseFromEclipse(structure[5] * doseUnit)

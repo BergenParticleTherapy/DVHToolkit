@@ -56,7 +56,7 @@ def loadPatientsCommand(self):
             self.window = Toplevel(self)
             sList = ", ".join(sorted(structures))
             Label(self.window, text=f"The following structures are available, choose one (* for wildcard, | for multiple):\n\n{sList}\n", wraplength=750).pack()
-            e1 = Entry(self.window, textvariable=self.options.structureToUse, width=20)
+            e1 = Entry(self.window, textvariable=self.options.structureToUse, width=60)
             e1.pack()
             e1.focus()
         else:
@@ -67,7 +67,7 @@ def loadPatientsCommand(self):
                 self.window = Toplevel(self)
             pList = ", ".join(sorted(plans))
             Label(self.window, text=f"\n\nThe following plans are available, choose one (* for wildcard, | for multiple):\n\n{pList}\n", wraplength=750).pack()
-            e2 = Entry(self.window, textvariable=self.options.planToUse, width=20)
+            e2 = Entry(self.window, textvariable=self.options.planToUse, width=60)
             e2.pack()
             if not len(structures): e2.focus()
         else:
@@ -87,19 +87,26 @@ def loadPatientsCommand(self):
         self.progress['maximum'] = len(plans) * len(structures) * self.patients[cohortName].findNPatients()
         
     else:
+        self.options.planToUse.set("")
+        self.options.structureToUse.set("")
         log = self.patients[cohortName].loadPatientsSIMPLE(self.progress)
         self.log("\n".join(log))
         self.progress['maximum'] = np.sum([len(k.patients) for k in self.patients.values()])
         self.addPatientCohort(cohortName, self.options.structureToUse.get(), self.options.planToUse.get(), 
                               self.patients[cohortName].getNPatients(), self.patients[cohortName].getNPatientsWithTox())
 
-def addPatientCohort(self, cohortName, structureName, planName, nPatients, nPatientsWithTox):     
+def addPatientCohort(self, cohortName, structureName, planName, nPatients, nPatientsWithTox):
+    cohortStr = f"{cohortName}\n"
+    cohortStr += planName and f"{planName}\n" or ""
+    cohortStr += structureName and f"{structureName}\n" or ""
+    cohortStr += f"{nPatients} patients\n({nPatientsWithTox} with tox)"
+
     self.cohortList[cohortName] = [Frame(self.middleLeftLowerContainer)]
     self.cohortList[cohortName][0].pack(anchor=N)
     self.cohortList[cohortName].append(Button(self.cohortList[cohortName][0], 
                                         text="DEL", command=partial(self.removePatientCohort, cohortName), width=7, height=3, bg='white'))
     self.cohortList[cohortName].append(Label(self.cohortList[cohortName][0], 
-                                        text=f"{planName}\n{structureName}\n{nPatients} patients\n({nPatientsWithTox} with tox)", bg='white', width=15))
+                                        text=cohortStr, bg='white', width=15))
     for i in range(1,3):
         self.cohortList[cohortName][i].pack(side=LEFT, pady=i and 0 or 5)
     
@@ -120,6 +127,7 @@ def addPatientCohort(self, cohortName, structureName, planName, nPatients, nPati
         self.buttonAggregateDVH['state'] = 'normal'
         self.log("Found n-vs-gEUD files for all patients\n\t(and adjusted n parameter accordingly)")
         self.buttonCalculateGEUD['state'] = 'normal'
+        self.buttonLKBuncert['state'] = 'normal'
     
     elif not hasGEUDs and self.options.NTCPcalculation.get() == "Logit":
         self.buttonCalculateNTCP['state'] = 'normal'
@@ -127,8 +135,10 @@ def addPatientCohort(self, cohortName, structureName, planName, nPatients, nPati
         self.buttonCalculateDVH['state'] = 'normal'
         self.buttonAggregateDVH['state'] = 'normal'
         self.buttonCalculateGEUD['state'] = 'normal'
+        self.buttonLKBuncert['state'] = 'normal'
     else:
         self.buttonCalculateNTCP['state'] = 'disabled'
+        self.buttonLKBuncert['state'] = 'disabled'
         self.buttonCalculateAUROC['state'] = 'disabled'
         self.buttonCalculateDVH['state'] = 'normal'
         self.buttonAggregateDVH['state'] = 'normal'
@@ -140,6 +150,7 @@ def removePatientCohort(self, cohortName):
         self.cohortList[cohortName][i].destroy()
     del self.cohortList[cohortName]
     self.log(f"Deleted cohort {cohortName}.")
+    self.bestParameters = []
     if not self.patients:
         self.buttonShowDVH['state'] = 'disabled'
         self.buttonCalculateGEUD['state'] = 'disabled'
@@ -165,7 +176,12 @@ def calculateGEUDCommand(self):
 def toxLimitChange(self):
     if self.cohortList:
         for cohortName, patientCohort in list(self.cohortList.items()):
-            patientCohort[-1].config(text=f"{cohortName}\n{self.patients[cohortName].getNPatients()} patients\n({self.patients[cohortName].getNPatientsWithTox()}) with tox)")
+            cohortStr = f"{cohortName}\n"
+            cohortStr += self.options.planToUse.get() and f"{self.options.planToUse.get()}\n" or ""
+            cohortStr += self.options.structureToUse.get() and f"{self.options.structureToUse.get()}\n" or ""
+            cohortStr += f"{self.patients[cohortName].getNPatients()} patients\n"
+            cohortStr += f"({self.patients[cohortName].getNPatientsWithTox()} with tox)"
+            patientCohort[-1].config(text=cohortStr)
     
 def toxFromFilenameCommand(self):
     if self.options.loadToxFromFilename.get() == 1:
@@ -222,7 +238,7 @@ def showDVHCommand(self):
     Label(self.styleContainer4, text="Line style grouping: ").pack(anchor=W)
     for text,mode in [["Plan", "plan"], ["Structure", "structure"], ["None", "none"]]:
         Radiobutton(self.styleContainer4, text=text, value=mode, variable=self.options.dvhPlotLineStyleGrouping).pack(side=LEFT, anchor=W)
-
+    
     Label(self.styleContainer5, text="Separate plot windows? ").pack(anchor=W)
     for text,mode in [["For plans", "plan"], ["For structures", "structure"], ["No", "none"]]:
         Radiobutton(self.styleContainer5, text=text, value=mode, variable=self.options.dvhPlotSeparatePlots).pack(side=LEFT, anchor=W)
@@ -233,10 +249,10 @@ def showDVHCommand(self):
     b.pack(side=LEFT, anchor=W)
     b2 = Button(self.buttonContainer, text="Exit", command=self.cancelCalculateDVHvalues, width=self.button_width)
     b2.pack(side=LEFT, anchor=W)
-
+    
     self.window.bind('<Return>', lambda event=None: b.invoke())
     self.window.bind('<Escape>', lambda event=None: b2.invoke())
-
+    
 def showDVHPlotCommand(self):
     styles = ["-", "--", "-.", ":", "loosely dashed", "dashdotted", "dashdotdotted"]
 
@@ -378,7 +394,7 @@ def bootstrapCorrectionMethodCommand(self):
             self.bestParameters = self.bestParametersMedian
             self.confidenceInterval = self.confidenceIntervalMedian
     
-def calculateNTCPCommand(self):        
+def calculateNTCPCommand(self, draw=True):
     cohortList = list(self.patients.values())
     for cohort in cohortList:
         cohort.options = self.options
@@ -408,9 +424,17 @@ def calculateNTCPCommand(self):
         self.bestParameters = res.x
         self.log("\n".join([f"{k}={v}" for k,v in list(res.items())]))
     
-    self.buttonLKBuncert['state'] = 'normal'
-    primaryCohort.drawSigmoid(secondaryCohorts, self.confidenceInterval, self.correlationLogit, self.aHist, self.bHist, self.TD50Hist, self.LLHhist, self.log)
-
+    if draw:
+        fignum = 51684
+        if not self.NTCPAxis or not plt.fignum_exists(fignum):
+            fig, self.NTCPAxis = plt.subplots(figsize=(12,8), num=fignum)
+        else:
+            plt.figure(num=fignum)
+            
+        primaryCohort.drawSigmoid(secondaryCohorts, self.confidenceInterval,
+                                                       self.correlationLogit, self.aHist, self.bHist, self.TD50Hist,
+                                                       self.LLHhist, self.log, self.NTCPAxis, self.style1, self.style2)
+    
 def NTCPcalculationCommand(self):
     if self.options.NTCPcalculation.get() == "Logit":
         self.NTCPpercentLabel['state'] = 'normal'
@@ -514,7 +538,6 @@ def calculateDVHCommand(self):
     Entry(self.fileContainer, textvariable=self.outputFileNameVar, width=30).pack(side=LEFT, anchor=W)
     Checkbutton(self.radioContainer, text="Find dose [Gy] at volume [%] (a,b,...) ", variable=self.dvhCheckVarDoseAtVolume).pack(anchor=W)
     Checkbutton(self.radioContainer, text="Find volume [%] at dose [Gy] (a,b,...) ", variable=self.dvhCheckVarVolumeAtDose).pack(anchor=W)
-    Entry(self.entryContainer, textvariable=self.dvhEntryVar1).pack(anchor=W)
     Entry(self.entryContainer, textvariable=self.dvhEntryVar2).pack(anchor=W)
     Checkbutton(self.calculateMeanDoseContainer, text="Mean dose from Eclipse? ", variable=self.calculateMeanDose).pack(anchor=W)
     
@@ -535,7 +558,7 @@ def aggregateDVHCommand(self):
     # Subtract or show all?
     
     self.window = Toplevel(self)
-    self.window.title("Aggregate DVH values")
+    self.window.title("Aggregate DVH plots")
     self.window.focus()
     self.styleContainer = Frame(self.window)
     self.styleContainer.pack(anchor=W)
@@ -543,24 +566,54 @@ def aggregateDVHCommand(self):
     self.styleContainer2.pack(anchor=W)
     self.styleContainer3 = Frame(self.window)
     self.styleContainer3.pack(anchor=W)
+    self.styleContainer4 = Frame(self.window)
+    self.styleContainer4.pack(anchor=W)
+    self.styleContainer5 = Frame(self.window)
+    self.styleContainer5.pack(anchor=W)
     self.buttonContainer = Frame(self.window)
     self.buttonContainer.pack(anchor=W, fill=X, expand=1)
     
-    self.dvhStyleVar1 = StringVar(value="mean")
+    self.dvhStyleVar1 = StringVar(value="median")
     self.dvhStyleVar2 = StringVar(value="compare")
     self.dvhStyleVar3 = IntVar(value=1)
+    self.dvhStyleSinglePlot = IntVar(value=1)
+
+    colorVarList = list()
+
+    structures = set()
+    for patientsInCohort in self.patients.values():
+        for patient in patientsInCohort.patients.values():
+            structures.add(patient.getStructure())
+    structures = sorted(list(structures))
     
+    colors = ["red", "orange", "darkgreen", "blue", "lightsalmon", "darkviolet",
+              "gold", "darkred", "indianred", "seagreen", "magenta", "goldenrod"]
+    self.colorVarList = { s : StringVar(value=k) for s,k in zip(structures,colors) }
+
+    self.colorContainer = [ Frame(self.styleContainer5) for k in range(len(structures)//3+1) ]
+    for k in self.colorContainer: k.pack(anchor=W)
+    
+    if len(colors) < len(structures):
+        raise IndexError("Please specify more colors in MainMenu/_Actions.py::aggregateDVHCommand()")
+                            
     Label(self.styleContainer, text="Cohort aggregation style: ").pack(side=LEFT)
     for text, mode in [["Median", "median"], ["Mean", "mean"]]:
-        Radiobutton(self.styleContainer, text=text, value=mode, variable=self.dvhStyleVar1).pack(anchor=W)
+        Radiobutton(self.styleContainer, text=text, value=mode, variable=self.dvhStyleVar1).pack(side=LEFT, anchor=W)
         
-    for text, mode in [["Compare cohorts", "compare"], ["Show all", "showAll"], ["Subtract [mean/median of all px]", "subtract"],
+    for text, mode in [["Compare plans per structure", "compare"], ["Compare tox vs no tox", "showAll"], ["Subtract [mean/median of all px]", "subtract"],
                         ["Mean/median [subtract per patient]", "subtractPerPatient"]]:
         Radiobutton(self.styleContainer2, text=text, value=mode, variable=self.dvhStyleVar2).pack(anchor=W)
-
-    Label(self.styleContainer3, text="Draw 83% confidence interval: ").pack(side=LEFT)
+    
+    Label(self.styleContainer3, text="Draw 95% confidence interval: ").pack(side=LEFT)
     for text, mode in [["Yes", 1], ["No",0]]:
         Radiobutton(self.styleContainer3, text=text, value=mode, variable=self.dvhStyleVar3).pack(side=LEFT, anchor=W)
+
+    Checkbutton(self.styleContainer4, text="Single plot window? ", variable=self.dvhStyleSinglePlot).pack(anchor=W)
+    
+    Label(self.colorContainer[0], text="Color scheme: ").pack(side=LEFT)
+    for nColors, s in enumerate(structures):
+       Label(self.colorContainer[(nColors+1)//3], text=f"{s}: ").pack(side=LEFT)
+       Entry(self.colorContainer[(nColors+1)//3], textvariable=self.colorVarList[s], width=10).pack(side=LEFT)
         
     b = Button(self.buttonContainer, text="Show aggregated DVH", command=self.calculateAggregatedDVH, width=self.button_width)
     b.pack(side=LEFT, anchor=W)

@@ -8,7 +8,7 @@ from tkinter import ttk
 
 from ..Tools import *
 
-def drawSigmoid(self, extraPatients, confidenceInterval, correlationLogit, aHist, bHist, TD50Hist, LLHhist, log):
+def drawSigmoid(self, extraPatients, confidenceInterval, correlationLogit, aHist, bHist, TD50Hist, LLHhist, log, NTCPAxis, style1, style2):
     """Plot the patient outcomes vs sigmoid probability from the best parameter set."""
 
     D5_lower = None
@@ -53,7 +53,6 @@ def drawSigmoid(self, extraPatients, confidenceInterval, correlationLogit, aHist
                     (self.options.fixTD50.get() or TD50Min < TD50_ < TD50Max):
                     yExtra.append(np.fromiter([HPM(( k - TD50_ ) / (m_ * TD50_)) for k in x], float))
         
-            # EMPIRICAL CONFIDENCE LIMITS (EXTREMITIES OF ALL MODELS WITHIN PARAMETER CIs)
             yMaxEmpirical = np.zeros(len(x))
             yMinEmpirical = np.zeros(len(x))
             
@@ -75,12 +74,9 @@ def drawSigmoid(self, extraPatients, confidenceInterval, correlationLogit, aHist
         y = np.fromiter([1 - 1 / (1 + exp(a + b*k)) for k in x], float)
         if np.sum(np.ravel(confidenceInterval)):
             for a_,b_,TD50_ in zip(aHist, bHist,TD50Hist):
-                #if (self.options.fixA.get() or aMin < a_ < aMax) and \
-                    #(self.options.fixB.get() or bMin < b_ < bMax):
                 if TD50Min < TD50_ < TD50Max:
                     yExtra.append(np.fromiter([1 - 1/(1 + exp(a_+b_*k)) for k in x], float))
             
-            # EMPIRICAL CONFIDENCE LIMITS (EXTREMITIES OF ALL MODELS WITHIN PARAMETER CIs)
             yMaxEmpirical = np.zeros(len(x))
             yMinEmpirical = np.zeros(len(x))
             
@@ -124,13 +120,11 @@ def drawSigmoid(self, extraPatients, confidenceInterval, correlationLogit, aHist
             py[idx] = patient.getTox() >= self.options.toxLimit.get()
             idx += 1
 
-    self.plot = plt.figure(figsize=(15, 10))
-    self.ax1 = self.plot.add_subplot(111)
+    self.ax1 = NTCPAxis
+    style1 = style1.pop(0)
+    style2 = style2.pop(0)
 
-    style1 = self.style1.pop(0)
-    style2 = self.style2.pop(0)
-
-    self.ax1.plot(x,y, "-", color=style1, zorder=15, linewidth=3)
+    self.ax1.plot(x,y, "-", color=style1, zorder=15, linewidth=3, label=f"{self.cohort}")
     self.ax1.plot(px,py, "o", color=style2, zorder=0)
     if self.options.confidenceIntervalShowModels.get():
         for each in yExtra:
@@ -138,25 +132,25 @@ def drawSigmoid(self, extraPatients, confidenceInterval, correlationLogit, aHist
             
     if np.sum(np.ravel(confidenceInterval)):
         self.ax1.fill_between(x, yMinEmpirical, yMaxEmpirical, color=style2,
-                              alpha=0.3, label="f{self.options.confidenceIntervalPercent.get():.0f}% confidence interval", zorder=10)
-        
+                              alpha=0.3, zorder=10) #label=f"{self.options.confidenceIntervalPercent.get():.0f}% confidence interval")
+    
     plt.ylim([-0.1,1.1])
     CIstr = np.sum(np.ravel(confidenceInterval)) and f" with {self.options.confidenceIntervalPercent.get()}% CI" or ""
     if self.options.NTCPcalculation.get() == "LKB":
         plt.xlabel("gEUD [Gy]")
         if D50_lower:
-            plt.title(f"LKB for {self.cohort}{CIstr}; n = {n:.3f} ({nMin:.3f}-{nMax:.3f}), m = {m:.3f} ({mMin:.3f}-{mMax:.3f}), "
+            plt.title(f"LKB{CIstr}; n = {n:.3f} ({nMin:.3f}-{nMax:.3f}), m = {m:.3f} ({mMin:.3f}-{mMax:.3f}), "
                       f"TD50 = {TD50:.2f} ({TD50_lower:.2f}-{TD50_upper:.2f}) Gy.")
         else:
-             plt.title("LKB for {self.cohort}{CIstr}; n = {n:.3f}, m = {m:.3f}, TD50 = {TD50:.2f} Gy.")
+             plt.title("LKB{CIstr}; n = {n:.3f}, m = {m:.3f}, TD50 = {TD50:.2f} Gy.")
             
     else:
         plt.xlabel(f"D{self.options.NTCPcalculationDpercent.get()}% [Gy]")
         if not D50_lower:
-            plt.title(f"Logit for {self.cohort}{CIstr}, using D{self.options.NTCPcalculationDpercent.get():.0f}%. "
+            plt.title(f"Logit{CIstr} using D{self.options.NTCPcalculationDpercent.get():.0f}%. "
                       f"TD5 = {self.calculateTDxFromLogit(5):.1f} Gy, TD50 = {self.calculateTDxFromLogit(50):.1f} Gy.")
         else:
-            plt.title(f"Logit for {self.cohort}{CIstr}, using D{self.options.NTCPcalculationDpercent.get():.0f}%. "
+            plt.title(f"Logit{CIstr} using D{self.options.NTCPcalculationDpercent.get():.0f}%. "
                       f"TD5 = {self.calculateTDxFromLogit(5):.1f} ({D5_lower:.1f}-{D5_upper:.1f}) Gy, "
                       f"TD50 = {self.calculateTDxFromLogit(50):.1f} ({D50_lower:.1f}-{D50_upper:.1f}) Gy.")
             log(f"TD5 = {self.calculateTDxFromLogit(5):.1f} ({D5_lower:.1f}-{D5_upper:.1f}) Gy "
@@ -164,6 +158,7 @@ def drawSigmoid(self, extraPatients, confidenceInterval, correlationLogit, aHist
             log(f"TD50 = {self.calculateTDxFromLogit(50):.1f} ({D50_lower:.1f}-{D50_upper:.1f}) Gy "
                 f"({self.options.confidenceIntervalPercent.get()}% CI)")
     plt.ylabel("Toxicity / probability")
+    plt.legend()
     
     plt.show()
     plt.savefig(f"Output/LKBgraph_{self.cohort}_{self.structure}.png")
@@ -192,7 +187,9 @@ def drawAUROC(self, extraPatients, progress):
     """Plot the AUROC curve for the chosen patient cohorts."""
     
     def auroc_error(theta, nplus, nminus):
-        """From https://www.tandfonline.com/doi/full/10.1080/02841860903078513"""
+        """From Boule et al, Acta Oncologica 48 (2009)
+
+        https://www.tandfonline.com/doi/full/10.1080/02841860903078513"""
         Q1 = (theta) / (2 - theta)
         Q2 = (2 * theta**2) / (1 + theta)
         nom = theta * (1 - theta) + (nplus - 1) * (Q1 - theta**2) + (nminus - 1) * (Q2 - theta**2)
@@ -276,5 +273,3 @@ def drawAUROC(self, extraPatients, progress):
     plt.xlabel('gEUD n-value')
     plt.show()
     progress['value'] = 0
-
-

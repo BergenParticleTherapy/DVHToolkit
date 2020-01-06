@@ -1,4 +1,4 @@
-import os, re, random, time
+import os, re, random, time, ast
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -147,11 +147,8 @@ def calculateAggregatedDVH(self):
                     notox[cohort].append(f"Volume_{name}")
                 
                 namePx = name.split("_")[0]
-                if "vmat" in namePx:
-                    namePx = namePx[:-4]
-                else:
-                    namePx = namePx[:-1]
-                    
+                namePx = namePx[:-1]
+                
                 if first:
                     cohortDVH[cohort] = pd.DataFrame({"Dose": patient.dvh["Dose"], f"Volume_{name}" : patient.dvh["Volume"]})
                     cohortDVH[cohort].set_index("Dose", inplace=True)
@@ -206,6 +203,8 @@ def calculateAggregatedDVH(self):
                 cohortDVH[cohort]["Volume agg 91.7"] = cohortDVH[cohort].quantile(0.917, axis=1)
                 cohortDVH[cohort]["Volume agg 5"] = cohortDVH[cohort].quantile(0.05, axis=1)
                 cohortDVH[cohort]["Volume agg 95"] = cohortDVH[cohort].quantile(0.95, axis=1)
+                cohortDVH[cohort]["Volume agg 2.5"] = cohortDVH[cohort].quantile(0.025, axis=1)
+                cohortDVH[cohort]["Volume agg 97.5"] = cohortDVH[cohort].quantile(0.975, axis=1)
                 
     if self.dvhStyleVar2.get() == "showAll": # Show all aggregated cohorts
         colors = ['limegreen', 'violet', 'gold', 'orangered', 'crimson', 'lightcoral', 'firebrick']
@@ -223,108 +222,57 @@ def calculateAggregatedDVH(self):
         plt.show()
 
     elif self.dvhStyleVar2.get() == "compare": # Compare plans
-        # colors = ['limegreen', 'violet', 'gold', 'orangered', 'crimson', 'lightcoral', 'firebrick']
+        """Use this to create a separate plot window for each structure in the cohort, with lines
+            for mean / median values per plan for all patients."""
         
         plans = set([k.split("/")[1] for k in cohortDVH.keys()])
         structures = set([k.split("/")[0] for k in cohortDVH.keys()])
         
         styleIdx = {k:idx for idx,k in enumerate(plans)}
-        colorIdx = {k:idx for idx,k in enumerate(structures)}
-
-        style = ['-', '--']
-        colorSet = {'PTV72.5' : 'darkred', 'PTV67.5' : 'indianred', 'PTV50' : 'red', 'PTV60' : 'salmon',
-                    'Rectum' : 'seagreen', 'Intestine' : 'magenta', 'Bowel' : 'magenta', 'Bladder' : 'goldenrod' }
+        style = ['-', '--', "-."]
         
-        custom_lines = {k:Line2D([0], [0], color="k", ls=k, lw=2) for k in style}
-        custom_lines2 = {k:Line2D([0], [0], color=k, ls='-', lw=2) for k in colorSet.values()}
-
-        custom_line_bladder = Line2D([0],[0], color=colorSet['Bladder'], ls='-', lw=2)
-        custom_line_rectum = Line2D([0],[0], color=colorSet['Rectum'], ls='-', lw=2)
-        custom_line_intestine = Line2D([0],[0], color=colorSet['Intestine'], ls='-', lw=2)
-
-        fig = plt.figure(figsize=(6*1.5,8*1.5))
-        plt1 = fig.add_subplot(2,1,1)
-        plt2 = fig.add_subplot(2,2,3)
-        plt3 = fig.add_subplot(2,2,4)
         plotsStructure = list()
         plotsPlan = list()
+        figs = dict()
         
         for k,v in cohortDVH.items():
             plan = k.split("/")[1]
             structure = k.split("/")[0]
 
+            if self.dvhStyleSinglePlot.get():
+                fignum = f"{self.dvhStyleVar1.get().capitalize()} DVH for all structures"
+                planLabel = None
+            else:
+                fignum = structure
+                planLabel = plan
+            plt.figure(figsize=(10,7.5), num = fignum)
             ls = style[styleIdx[plan]]
-            c = colorSet[structure]
-            thisplt=plt1
-            p = thisplt.plot(v["Volume agg"].index, v["Volume agg"], linestyle=ls, color=c)
-            
-            if not [structure, c] in plotsStructure:
-                plotsStructure.append([structure, c])
-            if not [plan, ls] in plotsPlan:
-                plotsPlan.append([plan,ls])
-
-
-        # ONLY FOR CURRENT FIGURE
-        for k,v in cohortDVH.items():
-            plan = k.split("/")[1]
-            structure = k.split("/")[0]
-
-            if not structure in ['Bladder', 'Rectum']: continue
-
-            ls = style[styleIdx[plan]]
-            #c = colors[colorIdx[k.split("/")[0]]]
-            c = colorSet[structure]
-            if self.dvhStyleVar3.get():
-                if structure == "Bladder":
-                    thisplt = plt2
-                else:
-                    thisplt = plt3
-                    
-                thisplt.fill_between(v.index, v["Volume agg 5"], v["Volume agg 95"],color=structure=="Bladder" and "gold" or c, alpha=structure=="Bladder" and 0.5 or 0.3)
-                thisplt.plot(v["Volume agg 5"].index, v["Volume agg 5"], linestyle=ls, color=c, linewidth=1, alpha=structure=="Bladder" and 0.9 or 0.7)
-                thisplt.plot(v["Volume agg 95"].index, v["Volume agg 95"], linestyle=ls, color=c, linewidth=1, alpha=structure=="Bladder" and 0.9 or 0.7)
+            c = self.colorVarList[structure].get()
                 
-            p = thisplt.plot(v["Volume agg"].index, v["Volume agg"], linestyle=ls, color=c)
-            
-            if not [structure, c] in plotsStructure:
-                plotsStructure.append([structure, c])
-            if not [plan, ls] in plotsPlan:
-                plotsPlan.append([plan,ls])
+            plt.plot(v["Volume agg"].index, v["Volume agg"], linestyle=ls, color=c, label=planLabel)
 
-        plt.subplots_adjust(.08,.12,.95,.97, .19, .09)
-        plt1.set_xlabel("Dose [Gy]", fontsize=12)
-        plt2.set_xlabel("Dose [Gy]", fontsize=12)
-        plt3.set_xlabel("Dose [Gy]", fontsize=12)
-        plt1.set_ylabel("Volume [%]", fontsize=12)
-        plt2.set_ylabel("Volume [%]", fontsize=12)
-        plt1.set_xlim([0, 75])
-        plt2.set_xlim([0, 75])
-        plt3.set_xlim([0, 75])
-        all_legends0 = [custom_lines[k[1]] for k in plotsPlan] + [Line2D([],[],linestyle='')] + [custom_lines2[k[1]] for k in plotsStructure]
-        all_legends1 = [custom_lines[k[1]] for k in plotsPlan] + [Line2D([],[],linestyle='')] + [custom_line_bladder]
-        all_legends2 = [custom_lines[k[1]] for k in plotsPlan] + [Line2D([],[],linestyle='')] + [custom_line_rectum]
-        all_labels1 = [k[0] == "Clinical" and "Clinical Plan" or k[0] for k in plotsPlan] + [''] + ['Bladder']
-        all_labels2 = [k[0] == "Clinical" and "Clinical Plan" or k[0] for k in plotsPlan] + [''] + ['Rectum']
-        all_labels0 = [k[0] == "Clinical" and "Clinical Plan" or k[0] for k in plotsPlan] + [''] + [k[0] == "Intestine" and "Bowel" or k[0] for k in plotsStructure]
-        plt1.legend(all_legends0, all_labels0, loc='lower left')
-        plt2.legend(all_legends1, all_labels1, loc='lower left')
-        plt3.legend(all_legends2, all_labels2, loc='lower left')
+            if self.dvhStyleVar3.get():
+                plt.fill_between(v.index, v["Volume agg 2.5"], v["Volume agg 97.5"], color=c, alpha=0.3)
+                plt.plot(v["Volume agg 2.5"].index, v["Volume agg 2.5"], linestyle=ls, color=c, linewidth=1, alpha=0.7)
+                plt.plot(v["Volume agg 97.5"].index, v["Volume agg 97.5"], linestyle=ls, color=c, linewidth=1, alpha=0.7)
 
-        def get_axis_limits(ax, scale=.87):
-            return ax.get_xlim()[1]*scale, ax.get_ylim()[1]*scale
-        
-        plt1.annotate('A', xy=get_axis_limits(plt1,0.95), fontsize=16, weight='bold')
-        plt2.annotate('B', xy=get_axis_limits(plt2), fontsize=16, weight='bold')
-        plt3.annotate('C', xy=get_axis_limits(plt3), fontsize=16, weight='bold')
+            if self.dvhStyleSinglePlot.get():
+                plt.title(f"{self.dvhStyleVar1.get().capitalize()} DVH for all structures")
+            else:
+                plt.title(f"{self.dvhStyleVar1.get().capitalize()} DVH for {structure}")
+                
+            plt.xlabel("Dose [Gy]", fontsize=12)
+            plt.ylabel("Volume [%]", fontsize=12)
+            plt.legend()
 
-        plt.rcParams['font.size'] = '12'            
-        plt1.tick_params(labelsize=12)
-        plt2.tick_params(labelsize=12)
-        plt3.tick_params(labelsize=12)
-        txt = "Figure 1: Population mean DVH for a) all OARs and PTVs, b) bladder with 90% CI and c) rectum with 90% CI. " \
-                  "Solid lines are used for RP, dashed lines for CP and shaded areas with thin border lines for CI."
-        plt.figtext(0.5,0.01,txt,wrap=True,horizontalalignment='center',fontsize=12)
-        
+
+        if self.dvhStyleSinglePlot.get():
+            custom_lines = {k:Line2D([0], [0], color="k", ls=style[styleIdx[k]], lw=2) for k in plans}
+            custom_lines2 = {k:Line2D([0], [0], color=v.get(), ls="-", lw=2) for k,v in self.colorVarList.items()}
+            all_legends = list(custom_lines.values()) + [Line2D([],[],linestyle='')] + list(custom_lines2.values())
+            all_labels = list(custom_lines.keys()) + [''] + list(custom_lines2.keys())
+            plt.legend(all_legends, all_labels)
+
         plt.show()
             
     else: # Subtract two cohorts
@@ -399,11 +347,7 @@ def calculateAggregatedDVH(self):
                     
                     plt.plot(cohortDiffPerPatient[structure]["Volume agg 95"].index,
                              cohortDiffPerPatient[structure]["Volume agg 95"], linestyle=ls,
-                             color=c, linewidth=1, alpha=structure=="Bladder" and 0.9 or 0.7)
-                    
-                    #plt.fill_between(cohortDiffPerPatient[structure].index, cohortDiffPerPatient[structure]["Volume agg 5"],
-                                     #cohortDiffPerPatient[structure]["Volume agg 95"], color=c, linewidth=3, alpha=0.25)
-                    
+                             color=c, linewidth=1, alpha=structure=="Bladder" and 0.9 or 0.7)                    
             
         txt = "Figure 2: Population mean and 90% CI of the absolute difference in " \
               "relative volume as a function of dose between RP and CP for each patient."
@@ -435,6 +379,27 @@ def calculateLKBuncert(self):
        Generate a random number rn [0,1] for each patient; rn < NTCP -> tox, rn > NTCP -> no tox
        Find n,m,TD50 from the synthesized population using these values, repeat 1000-2000 times
        Assumption: The cohort describes the real population. """
+
+    if not len(self.bestParameters):
+        cohortList = list(self.patients.values())
+        for cohort in cohortList:
+            cohort.options = self.options
+        
+        if self.options.NTCPcalculation.get() == "Logit":
+            for patients in cohortList:
+                patients.calculateDpercent(self.options.NTCPcalculationDpercent.get())
+                patients.bestParameters = self.bestParameters
+        
+        primaryCohort = cohortList[0]
+        secondaryCohorts = len(cohortList) > 1 and cohortList[1:] or {}
+
+        if self.options.optimizationScheme.get() == "GradientDescent":
+            res = primaryCohort.doGradientOptimization(secondaryCohorts, self.progress)
+            self.bestParameters = res.x
+            
+        elif self.options.optimizationScheme.get() == "MatrixMinimization":
+            res = primaryCohort.doMatrixMinimization(secondaryCohorts, self.progress)
+            self.bestParameters = res.x
     
     nIterations = self.options.confidenceIntervalIterations.get()        
     
@@ -943,7 +908,7 @@ def calculateLKBuncert(self):
             thisInit = self.bestParametersNone[2]
             diffInit = oldInit - thisInit
             
-            print(f"Prior cohort TD50 = {oldInit:.2f} Gt, this TD50 = {thisInit:.2f} Gy")
+            print(f"Prior cohort TD50 = {oldInit:.2f} Gy, this TD50 = {thisInit:.2f} Gy")
 
             if self.options.bootstrapCorrectionMethod.get() == "mean":
                 bestParameterDiff = 2 * diffInit - diffMean

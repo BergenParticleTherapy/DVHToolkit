@@ -39,6 +39,9 @@ class MainMenu(Frame):
         self.paramBHsizeEntry = []
         self.patients = {}
         self.cohortList = {}
+        self.NTCPAxis = None
+        self.style1 = ["darkred", "darkblue", "k"]*100
+        self.style2 = ["r", "b", "k"]*100
         
         res = self.options.loadOptions()
         
@@ -263,14 +266,15 @@ class MainMenu(Frame):
         Tooltip(self.basinHoppingsJumpLenghtsContainer, 
                 text="For each \"basin hopping\", each parameter is perturbed as a random number within ± these values.", wraplength=self.wraplength)
 
+
+        Label(self.middleMiddleContainer, text="BOOTSTRAP OPTIONS", font=("Helvetica", 12) ).pack(pady=(15,0))
+        Frame(self.middleMiddleContainer, bg="grey", relief=SUNKEN).pack(fill=X,expand=1,anchor=W)
+
         self.confidenceIntervalPercentContainer.pack(anchor=W)
         Label(self.confidenceIntervalPercentContainer, text="Confidence Interval percentage: ").pack(side=LEFT, anchor=W)
         Entry(self.confidenceIntervalPercentContainer, textvariable=self.options.confidenceIntervalPercent, width=7).pack(side=LEFT, anchor=W)
         Label(self.confidenceIntervalPercentContainer, text="%").pack(side=LEFT, anchor=W)
         Tooltip(self.confidenceIntervalPercentContainer, text="1 sigma: 68.75, 2 sigma: 95.45, 3 sigma: 99.73. 2-way p<0.05 @ = 83.4", wraplength=self.wraplength)
-
-        Label(self.middleMiddleContainer, text="BOOTSTRAP OPTIONS", font=("Helvetica", 12) ).pack(pady=(15,0))
-        Frame(self.middleMiddleContainer, bg="grey", relief=SUNKEN).pack(fill=X,expand=1,anchor=W)
         
         self.confidenceIntervalSchemeContainer.pack(anchor=W)
         Label(self.confidenceIntervalSchemeContainer, text="CI technique: ").pack(side=LEFT)
@@ -364,10 +368,10 @@ class MainMenu(Frame):
         self.buttonCalculateGEUD = Button(self.bottomContainer1, text="Calculate gEUD splines (G)", command=self.calculateGEUDCommand, width=self.button_width, state=DISABLED)
         self.buttonShowGEUDvsN = Button(self.bottomContainer1, text="Show gEUD/n (H)", command=self.showGEUDvsN, width=self.button_width, state=DISABLED)
         self.buttonShowDVH = Button(self.bottomContainer1, text="Show DVHs (D)", command=self.showDVHCommand, width=self.button_width, state=DISABLED)
-        self.buttonCalculateDVH = Button(self.bottomContainer1, text="Calculate DVH values (C)", command=self.calculateDVHCommand, width=self.button_width, state=DISABLED)
-        self.buttonAggregateDVH = Button(self.bottomContainer1, text="Aggregate DVH values (A)", command=self.aggregateDVHCommand, width=self.button_width, state=DISABLED)
+        self.buttonCalculateDVH = Button(self.bottomContainer1, text="Save DVH values (C)", command=self.calculateDVHCommand, width=self.button_width, state=DISABLED)
+        self.buttonAggregateDVH = Button(self.bottomContainer1, text="Aggregate DVH plots (A)", command=self.aggregateDVHCommand, width=self.button_width, state=DISABLED)
         self.buttonCalculateNTCP = Button(self.bottomContainer2, text="Calculate NTCP model (N)", command=self.calculateNTCPCommand, width=self.button_width, state=DISABLED)
-        self.buttonLKBuncert = Button(self.bottomContainer2, text="Calculate confidence intervals (B)", command=self.calculateLKBuncert, width=self.button_width, state=DISABLED)        
+        self.buttonLKBuncert = Button(self.bottomContainer2, text="Calculate confidence intervals (B)", command=self.calculateLKBuncert, width=self.button_width, state=DISABLED)
         self.buttonCalculateAUROC = Button(self.bottomContainer2, text="Calculate AUROC (S)", command=self.calculateAUROCCommand, width=self.button_width, state=DISABLED)
         self.buttonQuit = Button(self.bottomContainer2, text="Exit (Esc)", command=self.myQuit, width=self.button_width)
 

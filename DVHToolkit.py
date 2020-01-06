@@ -57,8 +57,12 @@
 # - Removed manual entry for "Number of Plan: " lines in start of ECLIPSE files, added automatic detection
 # - Full restructuring of program code
 
+# Changelog version 1.41 (Released 2020-01-06)
+# - More flexibility when plotting aggregated DVHs
+
 # TODO:
-# Clean up unneccessary code for CI calculation (remove non TD50 & non-pivotal data? less output)
+# Clean up unneccessary code for CI calculation
+# (remove non TD50 & non-pivotal data? less output)
 
 from tkinter import *
 from modules import Tools, Patients, MainMenu
