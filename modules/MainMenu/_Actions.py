@@ -112,6 +112,7 @@ def addPatientCohort(self, cohortName, structureName, planName, nPatients, nPati
     
     self.buttonShowDVH['state'] = 'normal'
     self.buttonCalculateGEUD['state'] = 'normal'
+    self.changeNamingButton['state'] = 'normal'
     
     hasGEUDs = True
     for patientsInCohort in list(self.patients.values()):
@@ -154,6 +155,7 @@ def removePatientCohort(self, cohortName):
     if not self.patients:
         self.buttonShowDVH['state'] = 'disabled'
         self.buttonCalculateGEUD['state'] = 'disabled'
+        self.changeNamingButton['state'] = 'disabled'
 
 def chooseStructureCommand(self,cohortName):
     self.log(f"Choosing structure: {self.options.structureToUse.get()}\n")
@@ -254,7 +256,7 @@ def showDVHCommand(self):
     self.window.bind('<Escape>', lambda event=None: b2.invoke())
     
 def showDVHPlotCommand(self):
-    styles = ["-", "--", "-.", ":", "loosely dashed", "dashdotted", "dashdotdotted"]
+    styles = ["-", "--", "-.", ":", (0,(1,10)), (0,(1,1)), (0,(1,1)), (0,(5,1)), (0,(5,5))]
 
     plans = set()
     structures = set()
@@ -600,7 +602,7 @@ def aggregateDVHCommand(self):
     for text, mode in [["Median", "median"], ["Mean", "mean"]]:
         Radiobutton(self.styleContainer, text=text, value=mode, variable=self.dvhStyleVar1).pack(side=LEFT, anchor=W)
         
-    for text, mode in [["Compare plans per structure", "compare"], ["Compare tox vs no tox", "showAll"], ["Subtract [mean/median of all px]", "subtract"],
+    for text, mode in [["Compare plans per structure (agg patients)", "compare"], ["Aggregate plans within patient", "comparePlans"], ["Compare tox vs no tox", "showAll"], ["Subtract [mean/median of all px]", "subtract"],
                         ["Mean/median [subtract per patient]", "subtractPerPatient"]]:
         Radiobutton(self.styleContainer2, text=text, value=mode, variable=self.dvhStyleVar2).pack(anchor=W)
     
@@ -619,6 +621,171 @@ def aggregateDVHCommand(self):
     b.pack(side=LEFT, anchor=W)
     self.window.bind('<Return>', lambda event=None: b.invoke())
     Button(self.buttonContainer, text="Cancel", command=self.cancelCalculateDVHvalues, width=self.button_width).pack(side=LEFT, anchor=W)
+
+def changeNamingCommand(self):            
+    self.window = Toplevel(self)
+    self.window.title("Change plan / structure naming")
+
+    self.structuresBefore = set()
+    self.plansBefore = set()
+    self.structuresAfter = set()
+    self.plansAfter = set()
+
+    for patientsInCohort in list(self.patients.values()):
+        for patient in list(patientsInCohort.patients.values()):
+            self.plansBefore.add(patient.getPlan())
+            self.structuresBefore.add(patient.getStructure())
+
+    self.planSubstituteList = list()
+    self.structureSubstituteList = list()
+    self.planEntries = list()
+    self.structureEntries = list()
+
+    self.planContainer = Frame(self.window)
+    self.structureContainer = Frame(self.window)
+    self.resultsContainer = Frame(self.window)
+    self.buttonContainer = Frame(self.window)
+
+    self.planContainer.pack(anchor=W, fill=X, expand=True)
+    self.structureContainer.pack(anchor=W, fill=X, expand=True)
+    self.resultsContainer.pack(anchor=W, fill=X, expand=True)
+    self.buttonContainer.pack(fill=X, expand=True)
+
+    Label(self.planContainer, text="Change plan names (* for wildcard)\n FROM \t  TO", font=("Helvetica", 11) ).pack(pady=(15,0))
+    #Frame(self.planContainer, bg="grey", relief=SUNKEN).pack(fill=X,expand=1,anchor=W)
+
+    self.planContainers = list()
+
+    for _ in range(1):
+        self.planContainers.append(Frame(self.planContainer))
+        self.planContainers[-1].pack(expand=True)
+        self.planSubstituteList.append({'from' : StringVar(), 'to' : StringVar()})
+        self.planEntries.append([Entry(self.planContainers[-1], textvariable=self.planSubstituteList[0]['from'], width=15),
+                                 Entry(self.planContainers[-1], textvariable=self.planSubstituteList[0]['to'], width=15)])
+
+        self.planEntries[-1][0].pack(side=LEFT, expand=True)
+        self.planEntries[-1][1].pack(side=RIGHT, expand=True)
+
+    Label(self.structureContainer, text="Change structure names (* for wildcard)\n FROM\t  TO", font=("Helvetica", 11) ).pack(pady=(15,0), expand=True)
+    #Frame(self.structureContainer, bg="grey", relief=SUNKEN).pack(fill=X,expand=1,anchor=W)
+
+    self.structureContainers = list()
+
+    for _ in range(1):
+        self.structureContainers.append(Frame(self.structureContainer))
+        self.structureContainers[-1].pack(expand=True)
+        self.structureSubstituteList.append({'from' : StringVar(), 'to' : StringVar()})
+        self.structureEntries.append([Entry(self.structureContainers[-1], textvariable=self.structureSubstituteList[0]['from'], width=15),
+                                      Entry(self.structureContainers[-1], textvariable=self.structureSubstituteList[0]['to'], width=15)])
+        self.structureEntries[-1][0].pack(side=LEFT, expand=True)
+        self.structureEntries[-1][1].pack(side=RIGHT, expand=True)
+
+    Label(self.resultsContainer, text="Plan and structure names", font=("Helvetica", 12) ).pack(pady=(15,0), expand=True)
+    Frame(self.resultsContainer, bg="grey", relief=SUNKEN).pack(fill=X,expand=1,anchor=W)
+
+    self.planAndStructureNameVariable = StringVar("")
+    self.planAndStructureNameList = Label(self.resultsContainer, textvariable=self.planAndStructureNameVariable, wraplength=500)
+    self.planAndStructureNameList.pack(fill=X, expand=True)
+
+    self.calculateNewNamesCommand()
+    self.drawPlanAndStructureNames()
+
+    self.calculateNewNamesButton = Button(self.buttonContainer, text="Calculate new names (Enter)", command=self.calculateNewNamesCommand, width=self.button_width)
+    self.calculateNewNamesButton.pack(side=LEFT)
+    self.changeNamingQuitAndSaveButton = Button(self.buttonContainer, text="Save and close (S)", command=self.changeNamingQuitAndSaveCommand, width=self.button_width)
+    self.changeNamingQuitAndSaveButton.pack(side=LEFT)
+    self.changeNamingQuitButton = Button(self.buttonContainer, text="Cancel (Esc)", command=self.changeNamingQuitCommand, width=self.button_width)
+    self.changeNamingQuitButton.pack(side=LEFT)
+    
+    self.window.bind("<Escape>", lambda event=None: self.changeNamingQuitButton.invoke())
+    self.window.bind("<Return>", lambda event=None: self.calculateNewNamesButton.invoke())
+    self.window.bind("s", lambda event=None: self.changeNamingQuitAndSaveButton.invoke())
+
+def calculateNewNamesCommand(self):
+    def sub(a,b,txt):
+        a = a.replace("*", ".*")
+        b = b.replace("*", ".*")
+        return re.sub(a,b,txt)
+    
+    self.structuresAfter.clear()
+    self.plansAfter.clear()
+    numberOfSubstitutions = {'plan' : 0, 'structure' : 0}
+
+    for d in self.planSubstituteList:
+        if len(d['from'].get()):
+            numberOfSubstitutions['plan'] += 1
+    for d in self.structureSubstituteList:
+        if len(d['from'].get()):
+            numberOfSubstitutions['structure'] += 1
+
+    for plan in self.plansBefore:
+        for d in self.planSubstituteList:
+            if len(d['from'].get()):
+                plan = sub(d['from'].get(), d['to'].get(), plan)
+        self.plansAfter.add(plan)
+
+    for structure in self.structuresBefore:
+        for d in self.structureSubstituteList:
+            if len(d['from'].get()):
+                structure = sub(d['from'].get(), d['to'].get(), structure)
+        self.structuresAfter.add(structure)
+
+    self.drawPlanAndStructureNames()
+
+    # Add entries if list is full
+    if numberOfSubstitutions['plan'] == len(self.planSubstituteList):
+        self.planContainers.append(Frame(self.planContainer))
+        self.planContainers[-1].pack(expand=True)
+        self.planSubstituteList.append({'from' : StringVar(), 'to' : StringVar()})        
+        self.planEntries.append([Entry(self.planContainers[-1], textvariable=self.planSubstituteList[-1]['from'], width=15),
+                                 Entry(self.planContainers[-1], textvariable=self.planSubstituteList[-1]['to'], width=15)])
+
+        self.planEntries[-1][0].pack(side=LEFT, expand=True)
+        self.planEntries[-1][1].pack(side=RIGHT, expand=True)
+
+    if numberOfSubstitutions['structure'] == len(self.structureSubstituteList):
+        self.structureContainers.append(Frame(self.structureContainer))
+        self.structureContainers[-1].pack(expand=True)
+        self.structureSubstituteList.append({'from' : StringVar(), 'to' : StringVar()})
+        self.structureEntries.append([Entry(self.structureContainers[-1], textvariable=self.structureSubstituteList[-1]['from'], width=15),
+                                      Entry(self.structureContainers[-1], textvariable=self.structureSubstituteList[-1]['to'], width=15)])
+        self.structureEntries[-1][0].pack(side=LEFT, expand=True)
+        self.structureEntries[-1][1].pack(side=RIGHT, expand=True)
+
+def changeNamingQuitCommand(self):
+    self.window.destroy()
+
+def changeNamingQuitAndSaveCommand(self):
+    def sub(a,b,txt):
+        a = a.replace("*", ".*")
+        b = b.replace("*", ".*")
+        return re.sub(a,b,txt)
+    
+    for patientsInCohort in list(self.patients.values()):
+        for patient in list(patientsInCohort.patients.values()):
+            plan = patient.getPlan()
+            if not plan in self.plansAfter:
+                for d in self.planSubstituteList:
+                    if len(d['from'].get()):
+                        plan = sub(d['from'].get(), d['to'].get(), plan)
+                patient.setPlan(plan)
+
+            structure = patient.getStructure()
+            if not structure in self.structuresAfter:
+                for d in self.structureSubstituteList:
+                    if len(d['from'].get()):
+                        structure = sub(d['from'].get(), d['to'].get(), structure)
+                patient.setStructure(structure)
+    self.window.destroy()
+
+def drawPlanAndStructureNames(self):
+    planNamesBefore = ", ".join(sorted(list(self.plansBefore)))
+    structureNamesBefore = ", ".join(sorted(list(self.structuresBefore)))
+    planNamesAfter = ", ".join(sorted(list(self.plansAfter)))
+    structureNamesAfter = ", ".join(sorted(list(self.structuresAfter)))
+
+    self.planAndStructureNameVariable.set(f"Plan names before:\n{planNamesBefore}\n\nPlan names after:\n{planNamesAfter}"
+                                    f"\n\nStructure names before:\n{structureNamesBefore}\n\nStructure names after:\n{structureNamesAfter}")
 
 def showGEUDvsN(self):
     for patientsInCohort in list(self.patients.values()):

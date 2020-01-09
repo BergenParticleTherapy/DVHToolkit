@@ -49,12 +49,12 @@ class Patients:
                 if not ".txt" in filename[-4:]: continue
                 if "gEUD" in filename: continue
                 try:
-                    with open(self.getFilePath(filename), "r", encoding="utf8") as textin:
+                    with open(self.getFilePath(filename), "r") as textin:
                         for line in textin:
                             if "Plan:" in line:
                                 planNames.append(re.sub("\s+", "", line.split(": ")[-1]))
-                except:
-                    print(f"Skipping filename {filename}")
+                except Exception as e:
+                    print(f"Skipping filename {filename} because {e}")
                     continue
         return list(set(planNames))
 
@@ -199,7 +199,7 @@ class Patients:
                         patient.setCohort(self.dataFolder.split("/")[-1])
                         patient.setDataFolder(self.dataFolder)
                         patient.dvh["Dose"] = patient.dvh["Dose"] * doseUnit
-                        patient.setID(f"{patientName}_{patient.getPlan()}_{patient.getStructure}")
+                        patient.setID(f"{patientName}_{patient.getPlan()}_{patient.getStructure()}")
                         patient.setMeanDoseFromEclipse(structure[3] * doseUnit)
                         patient.setMinDoseFromEclipse(structure[4] * doseUnit)
                         patient.setMaxDoseFromEclipse(structure[5] * doseUnit)

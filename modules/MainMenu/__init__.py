@@ -66,6 +66,7 @@ class MainMenu(Frame):
         self.dvhFileContainer = Frame(self.middleMiddleContainer)
         self.toxLimitContainer = Frame(self.middleMiddleContainer)
         self.toxFromFilenameContainer = Frame(self.middleMiddleContainer)
+        self.changeNamingContainer = Frame(self.middleMiddleContainer)
         self.NTCPcalculationContainer = Frame(self.middleMiddleContainer)
         self.NTCPpercentContainer = Frame(self.middleMiddleContainer)
         self.CSVStyleContainer = Frame(self.middleMiddleContainer)
@@ -168,6 +169,11 @@ class MainMenu(Frame):
         Tooltip(self.toxLimitContainer, 
                 text="The toxicity threshold. Patients with the chosen grade or higher will be classified with complication.", wraplength=self.wraplength)
 
+        self.changeNamingContainer.pack()
+        self.changeNamingButton = Button(self.changeNamingContainer, text="Change plan/structure names",
+                                         command=self.changeNamingCommand, width=self.button_width, state=DISABLED)
+        self.changeNamingButton.pack()
+
         Label(self.middleMiddleContainer, text="NTCP OPTIONS", font=("Helvetica", 12) ).pack(pady=(15,0))
         Frame(self.middleMiddleContainer, bg="grey", relief=SUNKEN).pack(fill=X,expand=1,anchor=W)
         
@@ -265,7 +271,6 @@ class MainMenu(Frame):
 
         Tooltip(self.basinHoppingsJumpLenghtsContainer, 
                 text="For each \"basin hopping\", each parameter is perturbed as a random number within ± these values.", wraplength=self.wraplength)
-
 
         Label(self.middleMiddleContainer, text="BOOTSTRAP OPTIONS", font=("Helvetica", 12) ).pack(pady=(15,0))
         Frame(self.middleMiddleContainer, bg="grey", relief=SUNKEN).pack(fill=X,expand=1,anchor=W)
@@ -399,6 +404,7 @@ class MainMenu(Frame):
     from ._Actions import customDVHHeaderCommand, selectDVHFileTypeCommand, showDVHCommand, showDVHPlotCommand
     from ._Actions import bootstrapCorrectionMethodCommand, calculateNTCPCommand, NTCPcalculationCommand
     from ._Actions import calculateAUROCCommand, calculateDVHCommand, cancelCalculateDVHvalues, aggregateDVHCommand
-    from ._Actions import showGEUDvsN, switchNto, switchMto, switchTD50to
+    from ._Actions import showGEUDvsN, switchNto, switchMto, switchTD50to, changeNamingCommand, calculateNewNamesCommand
+    from ._Actions import changeNamingQuitCommand, changeNamingQuitAndSaveCommand, drawPlanAndStructureNames
 
     from ._Analysis import calculateDVHvalues, calculateAggregatedDVH, calculateLKBuncert

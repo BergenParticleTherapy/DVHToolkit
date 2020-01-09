@@ -10,7 +10,6 @@
 # - Added "plan" options for choosing Eclipse patients
 # - Switched to "python" engine for reading CSV files, a bit more stable...
 
-
 # Changelog version 1.11 (Released 2019-02-15)
 # - Added support for multiple structures in DVH set for the same patient
 # - Fixed extrapolated DVH file I/O
@@ -59,6 +58,9 @@
 
 # Changelog version 1.41 (Released 2020-01-06)
 # - More flexibility when plotting aggregated DVHs
+
+# Changelog version 1.42 (Released 2020-01-09)
+# - Added dialog for renaming/combining plans and structures before analysis
 
 # TODO:
 # Clean up unneccessary code for CI calculation

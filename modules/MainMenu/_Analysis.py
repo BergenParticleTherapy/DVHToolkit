@@ -37,7 +37,7 @@ def calculateDVHvalues(self):
 
                 structure = patient.getStructure()
                 plan = patient.getPlan()
-                geud = 0
+                geud = patient.getGEUD(1/8)
                 if structure in nValues:
                     geud = patient.getGEUD(nValues[structure])
                 x1.append(patientsInCohort.cohort)
@@ -134,7 +134,6 @@ def calculateAggregatedDVH(self):
         plan = list(patientsInCohort.patients.values())[0].getPlan()
         structure = list(patientsInCohort.patients.values())[0].getStructure()
         cohort = f"{structure}/{plan}"
-        cohortDVH[cohort] = None
         tox[cohort] = []
         notox[cohort] = []
         
@@ -145,7 +144,7 @@ def calculateAggregatedDVH(self):
                     tox[cohort].append(f"Volume_{name}")
                 else:
                     notox[cohort].append(f"Volume_{name}")
-                
+
                 namePx = name.split("_")[0]
                 namePx = namePx[:-1]
                 
@@ -171,13 +170,44 @@ def calculateAggregatedDVH(self):
                 cohortDVH[cohort]["Volume agg"] = cohortDVH[cohort].median(axis=1)
                 cohortDVH[cohort]["Volume agg tox"] = cohortTox.median(axis=1)
                 cohortDVH[cohort]["Volume agg notox"] = cohortNoTox.median(axis=1)
+
+        elif self.dvhStyleVar2.get() == "comparePlans": # Group structure
+            cohorts = set()
+            for name, patient in list(patientsInCohort.patients.items()):
+                structure = patient.getStructure()
+                cohort = structure
+                cohorts.add(cohort)
+                
+                if not cohort in cohortDVH:
+                    print(f"{structure} first")
+                    cohortDVH[cohort] = pd.DataFrame({"Dose": patient.dvh["Dose"], f"Volume_{name}" : patient.dvh["Volume"]})
+                    cohortDVH[cohort].set_index("Dose", inplace=True)
+                else:
+                    print(f"{structure} not first")
+                    newDVH = pd.DataFrame({"Dose": patient.dvh["Dose"], f"Volume_{name}" : patient.dvh["Volume"]})
+                    newDVH.set_index("Dose", inplace=True)
+                    cohortDVH[cohort] = cohortDVH[cohort].merge(newDVH, how="outer", right_index=True, left_index=True)
+
+            for cohort in cohorts:
+                cohortDVH[cohort] = cohortDVH[cohort].interpolate(method='index', limit_direction='backward', limit = 100).fillna(0)
+                
+                if self.dvhStyleVar1.get() == "mean":
+                    cohortDVH[cohort]["Volume agg"] = cohortDVH[cohort].mean(axis=1)
+                else:
+                    cohortDVH[cohort]["Volume agg"] = cohortDVH[cohort].median(axis=1)
+                    
+                cohortDVH[cohort]["Volume agg 8.3"] = cohortDVH[cohort].quantile(0.083, axis=1)
+                cohortDVH[cohort]["Volume agg 91.7"] = cohortDVH[cohort].quantile(0.917, axis=1)
+                cohortDVH[cohort]["Volume agg 5"] = cohortDVH[cohort].quantile(0.05, axis=1)
+                cohortDVH[cohort]["Volume agg 95"] = cohortDVH[cohort].quantile(0.95, axis=1)
+                cohortDVH[cohort]["Volume agg 2.5"] = cohortDVH[cohort].quantile(0.025, axis=1)
+                cohortDVH[cohort]["Volume agg 97.5"] = cohortDVH[cohort].quantile(0.975, axis=1)
+            
         else: # COMPARE / SUBTRACT
             plan_structures = []
             for name, patient in list(patientsInCohort.patients.items()):
                 plan = patient.getPlan()
                 structure = patient.getStructure()
-                if plan == "Clinical(1)":
-                    plan = "Clinical"
                 cohort = f"{structure}/{plan}"
                 namePx = name.split("_")[0]
                     
@@ -208,16 +238,31 @@ def calculateAggregatedDVH(self):
                 
     if self.dvhStyleVar2.get() == "showAll": # Show all aggregated cohorts
         colors = ['limegreen', 'violet', 'gold', 'orangered', 'crimson', 'lightcoral', 'firebrick']
-        style = ['-', '--']
+        style = ['-', '--', "-."]
         idx=0
         for k,v in cohortDVH.items():
-            v["Volume agg tox"].plot(use_index=True, linestyle=style[idx%2], color=colors[idx//2], label=f"{k} tox")
+            v["Volume agg tox"].plot(use_index=True, linestyle=style[idx%2], color=colors[idx//2], label=f"{k} with toxicity")
             idx += 1
-            v["Volume agg notox"].plot(use_index=True, linestyle=style[idx%2], color=colors[idx//2], label=f"{k} no tox")
-            idx += 1
+            v["Volume agg notox"].plot(use_index=True, linestyle=style[idx%2], color=colors[idx//2], label=f"{k} no toxicity")
+            #idx += 1
         plt.xlabel("Dose [Gy]")
         plt.ylabel("Volume [%]")
         plt.xlim([0, 75])
+        plt.legend()
+        plt.show()
+
+    elif self.dvhStyleVar2.get() == "comparePlans":
+        for k,v in cohortDVH.items():
+            c = self.colorVarList[k.split("/")[0]].get()
+            v["Volume agg"].plot(use_index=True, linestyle="-", color=c, label=k)
+
+            if self.dvhStyleVar3.get():
+                plt.fill_between(v.index, v["Volume agg 2.5"], v["Volume agg 97.5"], color=c, alpha=0.3)
+                plt.plot(v["Volume agg 2.5"].index, v["Volume agg 2.5"], linestyle="-", color=c, linewidth=1, alpha=0.7)
+                plt.plot(v["Volume agg 97.5"].index, v["Volume agg 97.5"], linestyle="-", color=c, linewidth=1, alpha=0.7)
+
+        plt.xlabel("Dose [Gy]")
+        plt.ylabel("Volume [%]")
         plt.legend()
         plt.show()
 
