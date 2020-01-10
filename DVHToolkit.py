@@ -62,6 +62,9 @@
 # Changelog version 1.42 (Released 2020-01-09)
 # - Added dialog for renaming/combining plans and structures before analysis
 
+# Changelog version 1.43 (Released 2020-01-10)
+# - Allow for empty structures in ECLIPSE file (now: skip, don't crash)
+
 # TODO:
 # Clean up unneccessary code for CI calculation
 # (remove non TD50 & non-pivotal data? less output)

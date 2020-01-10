@@ -108,38 +108,57 @@ class Patients:
 
                 progress.step(1)
                 progress.update_idletasks()
+
+                emptyStructure = False
+                dontAppendLength = False
                 
                 with open(self.getFilePath(filename), "r") as textin:
                     for line in textin:
                         if "Plan: " in line and lastLineEmpty:
                             # Remove summary lines in start of file
                             # They always start with \nPlan, instead of \nStructure
-                            
                             idx += 1
                             continue
                         
                         if "Structure: " in line:
                             structureNames.append(re.sub("\s+", "", line.split(": ")[-1]))
                             if structureStarts:
-                                structureLength.append(idx-structureStarts[-1]-1)
+                                if dontAppendLength:
+                                    dontAppendLength = False
+                                else:
+                                    structureLength.append(idx-structureStarts[-1]-1)
                         
                         if "Plan: " in line:
                             planNames.append(re.sub("\s+", "", line.split(": ")[-1]))
                             if planStarts:
-                                planLength.append(idx-planStarts[-1]-3)
+                                if dontAppendLength:
+                                    dontAppendLength = False
+                                else:
+                                    planLength.append(idx-planStarts[-1]-3)
 
-                        if "Min Dose [" in line:
-                            structureMinDose.append(float(line.split(": ")[-1]))
+                        if line == "Min Dose [Gy]: \n":
+                            log.append(f"Removing structure/plan {structureNames[-1]}/{planNames[-1]} due to empty DVH data in {filename}.")
+                            structureNames.pop()
+                            planNames.pop()
+                            emptyStructure = True
+                            dontAppendLength = True
 
-                        if "Max Dose [" in line:
-                            structureMaxDose.append(float(line.split(": ")[-1]))
-                        
-                        if "Mean Dose [" in line:
-                            structureMeanDose.append(float(line.split(": ")[-1]))
-                                
+                        if not emptyStructure:
+                            if "Min Dose [" in line:
+                                structureMinDose.append(float(line.split(": ")[-1]))
+
+                            if "Max Dose [" in line:
+                                structureMaxDose.append(float(line.split(": ")[-1]))
+                            
+                            if "Mean Dose [" in line:
+                                structureMeanDose.append(float(line.split(": ")[-1]))
+                                    
                         if "Dose [" in line and "Volume [" in line:
-                            structureStarts.append(idx+1)
-                            planStarts.append(idx+1)
+                            if not emptyStructure:
+                                structureStarts.append(idx+1)
+                                planStarts.append(idx+1)
+                            else:
+                                emptyStructure = False
                         
                         idx += 1
                         
@@ -156,6 +175,7 @@ class Patients:
                 plans = zip(planNames, planStarts, planLength)
                 
                 for structure, plan in zip(structures, plans):
+                    print(structure[0], structure[1], structure[1]+structure[2])
                     if match(self.options.structureToUse.get(), structure[0]) and match(self.options.planToUse.get(), plan[0]):
                         headers = self.options.customDVHHeader.get().split(",")
                         headers = ["Dose", "Relative dose", "Volume"]
