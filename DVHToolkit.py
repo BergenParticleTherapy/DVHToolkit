@@ -65,6 +65,11 @@
 # Changelog version 1.43 (Released 2020-01-10)
 # - Allow for empty structures in ECLIPSE file (now: skip, don't crash)
 
+# Changelog version 1.44 (Released 2020-02-03)
+# - Now using pandas for CSV / XLSX conversion from DVH (from manual)
+# - More flexibility in DVH plotting
+# - RayStation DVH Input
+
 # TODO:
 # Clean up unneccessary code for CI calculation
 # (remove non TD50 & non-pivotal data? less output)

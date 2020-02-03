@@ -101,6 +101,7 @@ class Patient:
 
         # Add the two new columns (avg dose, differential volume) to the dataframe
         self.dvh = self.dvh.assign(avgDose = avgDoseList, diffVolume = diffVolumeList)
+        print(self.dvh.columns)
         self.dvh.columns = ["Dose", "Volume", "Avg. Dose", "Diff. Volume"]
         
         # Remove rows where the differential volume is zero, not needed for calculation, reduce data set by 10%-20%

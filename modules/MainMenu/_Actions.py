@@ -9,6 +9,7 @@ from tkinter import ttk
 from tkinter import filedialog
 
 from ..Patients import *
+from ._Tooltip import Tooltip
 
 def myQuit(self):
     self.options.saveOptions() # to config file
@@ -46,7 +47,7 @@ def loadPatientsCommand(self):
     self.patients[cohortName] = Patients(self.options)
     self.patients[cohortName].setDataFolder(newdir)
     
-    if self.options.DVHFileType.get() == "ECLIPSE":
+    if self.options.DVHFileType.get() in ["ECLIPSE", "RayStation"]:
         plans = self.patients[cohortName].findPlans()
         structures = self.patients[cohortName].findStructures()
 
@@ -60,7 +61,7 @@ def loadPatientsCommand(self):
             e1.pack()
             e1.focus()
         else:
-            self.options.StructureToUse.set(structures[0])
+            self.options.structureToUse.set(structures[0])
         
         if len(plans)>1:
             if not self.window:
@@ -160,8 +161,12 @@ def removePatientCohort(self, cohortName):
 def chooseStructureCommand(self,cohortName):
     self.log(f"Choosing structure: {self.options.structureToUse.get()}\n")
     self.window.destroy()
-    res = self.patients[cohortName].loadPatientsECLIPSE(self.progress)
-    self.addPatientCohort(cohortName, self.options.structureToUse.get(), self.options.planToUse.get(), self.patients[cohortName].getNPatients(), self.patients[cohortName].getNPatientsWithTox())
+    if self.options.DVHFileType.get() == "ECLIPSE":
+        res = self.patients[cohortName].loadPatientsECLIPSE(self.progress)
+    elif self.options.DVHFileType.get() == "RayStation":
+        res = self.patients[cohortName].loadPatientsRayStation(self.progress)
+    self.addPatientCohort(cohortName, self.options.structureToUse.get(), self.options.planToUse.get(),
+                          self.patients[cohortName].getNPatients(), self.patients[cohortName].getNPatientsWithTox())
     self.log("\n".join(res))
 
 def calculateGEUDCommand(self):
@@ -202,7 +207,7 @@ def customDVHHeaderCommand(self):
         self.customDVHHeaderEntry.configure({'bg':'coral1'})
 
 def selectDVHFileTypeCommand(self):
-    if self.options.DVHFileType.get() == "ECLIPSE":
+    if self.options.DVHFileType.get() in ["ECLIPSE", "RayStation"]:
         self.customDVHHeaderEntry['state'] = 'disabled'
     else:
         self.customDVHHeaderEntry['state'] = 'normal'
@@ -238,7 +243,7 @@ def showDVHCommand(self):
     Entry(self.styleContainer3, textvariable=self.options.dvhPlotLegendSize, width=10).pack(side=LEFT)
 
     Label(self.styleContainer4, text="Line style grouping: ").pack(anchor=W)
-    for text,mode in [["Plan", "plan"], ["Structure", "structure"], ["None", "none"]]:
+    for text,mode in [["Plan", "plan"], ["Structure", "structure"], ["Folder", "folder"], ["None", "none"]]:
         Radiobutton(self.styleContainer4, text=text, value=mode, variable=self.options.dvhPlotLineStyleGrouping).pack(side=LEFT, anchor=W)
     
     Label(self.styleContainer5, text="Separate plot windows? ").pack(anchor=W)
@@ -260,11 +265,13 @@ def showDVHPlotCommand(self):
 
     plans = set()
     structures = set()
+    folders = set()
 
     for patientsInCohort in list(self.patients.values()):
         for patient in list(patientsInCohort.patients.values()):
             plans.add(patient.getPlan())
             structures.add(patient.getStructure())
+            folders.add(patient.getDataFolder().split("/")[-1])
 
     plotDict = dict()
     idx = 0
@@ -272,7 +279,7 @@ def showDVHPlotCommand(self):
         for plan in plans:
             plotDict[plan] = idx
             plt.figure(idx, figsize=(15,10))
-            plt.title(f"DVHs for {plans}")
+            plt.title(f"DVHs for {plan}")
             plt.xlabel("Dose [Gy]")
             plt.ylabel("Volume [%]")
             plt.ylim([0, 105])
@@ -307,6 +314,11 @@ def showDVHPlotCommand(self):
             styleDict[structure] = styles[idx]
             custom_lines[structure] = Line2D([0], [0], color="k", ls=styles[idx], lw=2)
             idx += 1
+    elif self.options.dvhPlotLineStyleGrouping.get() == "folder":
+        for folder in folders:
+            styleDict[folder] = styles[idx]
+            custom_lines[folder] = Line2D([0], [0], color="k", ls=styles[idx], lw=2)
+            idx += 1
     
     for patientsInCohort in list(self.patients.values()):
         for patient in list(patientsInCohort.patients.values()):
@@ -314,6 +326,8 @@ def showDVHPlotCommand(self):
                 style = styleDict[patient.getPlan()]
             elif self.options.dvhPlotLineStyleGrouping.get() == "structure":
                 style = styleDict[patient.getStructure()]
+            elif self.options.dvhPlotLineStyleGrouping.get() == "folder":
+                style = styleDict[patient.getDataFolder().split("/")[-1]]
             else:
                 style = styles[0]
 
@@ -332,10 +346,9 @@ def showDVHPlotCommand(self):
                     name = patient.getStructure()
                 elif self.options.dvhPlotLegendMarker.get() == "folderName":
                     name = patient.getDataFolder().split("/")[-1]
-
                 elif self.options.dvhPlotLegendMarker.get() == "fileName":
                     name = patient.getID().split("_")[0]
-        
+    
             if self.options.dvhPlotUseToxAsColor.get():
                 plt.plot(patient.dvh["Dose"], patient.dvh["Volume"], linestyle=style, lw=1,
                          color=patient.getTox() >= self.options.toxLimit.get() and "red" or "black")
@@ -346,10 +359,10 @@ def showDVHPlotCommand(self):
                            prop={'size':float(self.options.dvhPlotLegendSize.get())})
             else:
                 plt.plot(patient.dvh["Dose"], patient.dvh["Volume"], linestyle=style, lw=1, label=name)
-                
+    
     if self.options.dvhPlotLegendMarker.get() in ['planName', 'structureName', 'folderName','fileName'] \
                 and not self.options.dvhPlotUseToxAsColor.get():
-        if self.options.dvhPlotLineStyleGrouping.get() in ["plan", "structure"]:
+        if self.options.dvhPlotLineStyleGrouping.get() in ["plan", "structure", "folder"]:
             for plotIdx in plotDict.values():
                 plt.figure(plotIdx)
                 plt.legend(custom_lines.values(), custom_lines.keys(),
@@ -520,33 +533,60 @@ def calculateDVHCommand(self):
     self.fileContainer.pack(anchor=W)
     self.inputContainer = Frame(self.window)
     self.inputContainer.pack(anchor=W)
-    self.radioContainer = Frame(self.inputContainer)
-    self.radioContainer.pack(side=LEFT, anchor=W)
-    self.entryContainer = Frame(self.inputContainer)
-    self.entryContainer.pack(side=LEFT, anchor=W)
-    self.calculateMeanDoseContainer = Frame(self.window)
-    self.calculateMeanDoseContainer.pack(anchor=W, fill=X, expand=1)
+    self.radioContainer1 = Frame(self.inputContainer)
+    self.radioContainer1.pack(anchor=W)
+    self.radioContainer2 = Frame(self.inputContainer)
+    self.radioContainer2.pack(anchor=W)
+    self.radioContainer3 = Frame(self.inputContainer)
+    self.radioContainer3.pack(anchor=W)
+    self.ntcpContainer = Frame(self.inputContainer)
+    self.ntcpContainer.pack(anchor=W)
+    self.calculateMeanDoseContainer = Frame(self.inputContainer)
+    self.calculateMeanDoseContainer.pack(anchor=W)
+    self.calculateGEUDContainer = Frame(self.inputContainer)
+    self.calculateGEUDContainer.pack(anchor=W)
+    
     self.buttonContainer = Frame(self.window)
-    self.buttonContainer.pack(anchor=W, fill=X, expand=1)        
+    self.buttonContainer.pack(anchor=N, fill=X, expand=1)        
 
     self.dvhCheckVarDoseAtVolume = IntVar(value=1)
     self.dvhCheckVarVolumeAtDose = IntVar(value=1)
+    self.dvhCheckVarIncludeNTCP = IntVar(value=1)
+    self.dvhCheckVarIncludeGEUD = IntVar(value=1)
      
     self.dvhEntryVar1 = StringVar(value=0)
     self.dvhEntryVar2 = StringVar(value=0)
-    self.outputFileNameVar = StringVar(value="Output/dvhValues.csv")
+    self.outputFileNameVar = StringVar(value="Output/dvhValues.xslx")
     
-    Label(self.fileContainer, text="Output file: ").pack(side=LEFT)
+    Label(self.fileContainer, text="Output file name: ").pack(side=LEFT)
     Entry(self.fileContainer, textvariable=self.outputFileNameVar, width=30).pack(side=LEFT, anchor=W)
-    Checkbutton(self.radioContainer, text="Find dose [Gy] at volume [%] (a,b,...) ", variable=self.dvhCheckVarDoseAtVolume).pack(anchor=W)
-    Checkbutton(self.radioContainer, text="Find volume [%] at dose [Gy] (a,b,...) ", variable=self.dvhCheckVarVolumeAtDose).pack(anchor=W)
-    Entry(self.entryContainer, textvariable=self.dvhEntryVar2).pack(anchor=W)
-    Checkbutton(self.calculateMeanDoseContainer, text="Mean dose from Eclipse? ", variable=self.calculateMeanDose).pack(anchor=W)
+    Tooltip(self.fileContainer, text="Filetype must be .csv (CSV file) or .xlsx (Excel file)", wraplength=self.wraplength)
     
+    Checkbutton(self.radioContainer1, text="Find dose [Gy] at volumes [%] ", variable=self.dvhCheckVarDoseAtVolume).pack(anchor=W, side=LEFT)
+    Entry(self.radioContainer1, textvariable=self.dvhEntryVar1).pack(anchor=W, side=LEFT)
+    Tooltip(self.radioContainer1, text="Calculate dose at multiple volumes by giving a comma-separated list ( e.g. 2, 5, 10, 50, 98)",
+            wraplength=self.wraplength)
+    
+    Checkbutton(self.radioContainer2, text="Find volume [%] at doses [Gy] ", variable=self.dvhCheckVarVolumeAtDose).pack(anchor=W, side=LEFT)
+    Entry(self.radioContainer2, textvariable=self.dvhEntryVar2).pack(anchor=W, side=LEFT)
+    Tooltip(self.radioContainer1, text="Calculate the volume for multiple dose values by giving a comma-separated list ( e.g. 10, 20, 30)",
+            wraplength=self.wraplength)
+
+    Checkbutton(self.ntcpContainer, text="Calculate NTCP", variable=self.dvhCheckVarIncludeNTCP).pack(anchor=W)
+    Tooltip(self.ntcpContainer, text="Calculate the NTCP values (0->1) for all patients. If a model fit has been performed ,"
+           f" the resulting parameters will be applied here ({self.bestParameters}). If not, the parameters must be specified "
+           " in the main menu, under \"fix A/B\" (Logit) or \"fix N/M/TD50\" (LKB).", wraplength=self.wraplength)
+           
+    Checkbutton(self.calculateMeanDoseContainer, text="Include dose metrics from ECLIPSE ", variable=self.calculateMeanDose).pack(anchor=W)
+    Checkbutton(self.calculateGEUDContainer, text="Calculate gEUD ", variable=self.dvhCheckVarIncludeGEUD).pack(anchor=W)
+    Tooltip(self.calculateGEUDContainer, text="Calculate the gEUD based on the pre-set fixed N value. If no value is set, a set of default values "
+            " based on structure names (bladder=1/8, rectum=1/12, intestine=1/4). (Define more structures in modules/MainMenu/_Analysis.py)",
+            wraplength=self.wraplength)
+
     b = Button(self.buttonContainer, text="Calculate", command=self.calculateDVHvalues, width=self.button_width)
-    b.pack(side=LEFT, anchor=W)
+    b.pack(side=LEFT, anchor=N)
     b2 = Button(self.buttonContainer, text="Cancel", command=self.cancelCalculateDVHvalues, width=self.button_width)
-    b2.pack(side=LEFT, anchor=W)
+    b2.pack(side=LEFT, anchor=N)
 
     self.window.bind('<Return>', lambda event=None: b.invoke())
     self.window.bind('<Escape>', lambda event=None: b2.invoke())     

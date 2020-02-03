@@ -34,25 +34,35 @@ class Patients:
         structureNames = []
         for root, d, f, in os.walk(self.dataFolder):
             for filename in f:
-                if not ".txt" in filename[-4:]: continue
-                if "gEUD" in filename: continue                
+                #if not ".txt" in filename[-4:] and not ".dvh" in filename[-4]: continue
+                if not filename[-4:] in [".txt", ".dvh"]: continue
+                if "gEUD" in filename: continue
                 with open(self.getFilePath(filename), "r") as textin:
                     for line in textin:
-                        if "Structure:" in line:
-                            structureNames.append(re.sub("\s+", "", line.split(": ")[-1]))
+                        if self.options.DVHFileType.get() == "ECLIPSE":
+                            if "Structure:" in line:
+                                structureNames.append(re.sub("\s+", "", line.split(": ")[-1]))
+                        elif self.options.DVHFileType.get() == "RayStation":
+                            if "#RoiName:" in line:
+                                structureNames.append(re.sub("\s+", "", line.split(":")[-1]))
+                                
         return list(set(structureNames))
     
     def findPlans(self):
         planNames = []
         for root, d, f, in os.walk(self.dataFolder):
             for filename in f:
-                if not ".txt" in filename[-4:]: continue
+                if not filename[-4:] in [".txt", ".dvh"]: continue
                 if "gEUD" in filename: continue
                 try:
                     with open(self.getFilePath(filename), "r") as textin:
                         for line in textin:
-                            if "Plan:" in line:
-                                planNames.append(re.sub("\s+", "", line.split(": ")[-1]))
+                            if self.options.DVHFileType.get() == "ECLIPSE":
+                                if "Plan:" in line:
+                                    planNames.append(re.sub("\s+", "", line.split(": ")[-1]))
+                            elif self.options.DVHFileType.get() == "RayStation":
+                                if "#Dosename:" in line:
+                                    planNames.append(re.sub("\s+", "", line.split(":")[-1]))
                 except Exception as e:
                     print(f"Skipping filename {filename} because {e}")
                     continue
@@ -62,7 +72,7 @@ class Patients:
         nPatients = 0
         for root, d, f in os.walk(self.dataFolder):
             for filename in f:
-                if not ".txt" in filename[-4:]: continue
+                if not ".txt" in filename[-4:] and not ".dvh" in filename[-4]: continue
                 if "gEUD" in filename: continue
                 nPatients +=1
         return nPatients
@@ -175,7 +185,6 @@ class Patients:
                 plans = zip(planNames, planStarts, planLength)
                 
                 for structure, plan in zip(structures, plans):
-                    print(structure[0], structure[1], structure[1]+structure[2])
                     if match(self.options.structureToUse.get(), structure[0]) and match(self.options.planToUse.get(), plan[0]):
                         headers = self.options.customDVHHeader.get().split(",")
                         headers = ["Dose", "Relative dose", "Volume"]
@@ -223,6 +232,122 @@ class Patients:
                         patient.setMeanDoseFromEclipse(structure[3] * doseUnit)
                         patient.setMinDoseFromEclipse(structure[4] * doseUnit)
                         patient.setMaxDoseFromEclipse(structure[5] * doseUnit)
+
+                        # Add object to dictionary
+                        self.cohort = self.dataFolder.split("/")[-1]
+                        self.structure = structure[0]
+                        self.patients[patient.getID()] = patient
+
+        progress['value'] = 0
+        return log
+
+    def loadPatientsRayStation(self, progress):
+        def match(a,b):
+            a += "$" # Don't match end-of-lines
+            a = a.replace("*", ".*") # Use regex type wildcard
+            return re.match(a, b)
+
+        log = []
+        
+        if not self.options.loadToxFromFilename.get():        
+            try:
+                with open("%s_tox.csv" % (self.dataFolder), "r") as toxFile:
+                    toxDict = {}
+                    for line in toxFile.readlines():
+                        linesplit = line.split(",")
+                        toxDict[linesplit[0]] = int(linesplit[1])
+            except:
+                log.append(f"Cannot open toxicity file {self.dataFolder}_tox.csv, please include in format (filename,tox).")
+                return log
+                
+        n=0
+
+        progress['maximum'] = self.findNPatients()
+        
+        for root, d, f, in os.walk(self.dataFolder):
+            for filename in f:
+                if not filename[-4:] in [".txt", ".dvh"]: continue
+                if "gEUD" in filename: continue
+                idx = 0
+                structureNames = []
+                structureStarts = []
+                structureLength = []
+                structureMeanDose = []
+                structureMinDose = []
+                structureMaxDose = []
+                planNames = []
+                planStarts = []
+                planLength = []
+                lastLineEmpty = False
+
+                progress.step(1)
+                progress.update_idletasks()
+                
+                with open(self.getFilePath(filename), "r") as textin:
+                    for line in textin:
+                        if "#RoiName:" in line:
+                            structureNames.append(re.sub("\s+", "", line.split(":")[-1]))
+                            if structureStarts:
+                                structureLength.append(idx-structureStarts[-1]-1)
+                        
+                        if "#Dosename:" in line:
+                            planNames.append(re.sub("\s+", "", line.split(":")[-1]))
+                            if planStarts:
+                                planLength.append(idx-planStarts[-1]-3)
+
+                        if "#Dose unit: " in line:
+                            structureStarts.append(idx+1)
+                            planStarts.append(idx+1)
+  
+                        idx += 1
+
+                # To get to end of file
+                structureLength.append(1000000)
+                planLength.append(1000000)
+                
+                structures = zip(structureNames, structureStarts, structureLength)
+                plans = zip(planNames, planStarts, planLength)
+                
+                for structure in structures:
+                    if match(self.options.structureToUse.get(), structure[0]):
+                        headers = self.options.customDVHHeader.get().split(",")
+                        
+                        headers = ["Dose", "Volume"]
+                        dvh = pd.read_csv(self.getFilePath(filename), header=None, names = headers,
+                                        usecols = ["Dose", "Volume"], decimal=".", sep="\s+",
+                                        skiprows=structure[1], nrows = structure[2], engine="python")
+
+                        # Create Patient object with DVH data
+                        if self.options.doseUnit.get() == 'autodetect' and not self.doseUnit:
+                            maxDose = dvh["Dose"].max()
+                            if maxDose > 1000:
+                                doseUnit = self.options.cGy
+                            else:
+                                doseUnit = self.options.Gy
+                            self.doseUnit = doseUnit
+                        elif self.doseUnit:
+                            doseUnit = self.doseUnit
+                        else:
+                            doseUnit = self.options.doseUnit.get() == "cGy" and self.options.cGy or self.options.Gy
+
+                        n += 1
+                        dvh["Dose"] = dvh["Dose"] * doseUnit
+                        maxVolume = dvh["Volume"].at[0]
+                        dvh["Volume"] = dvh["Volume"] * 100 / maxVolume
+                        
+                        dvh = dvh[dvh["Volume"] > 0]
+
+                        patient = Patient(dvh)
+                        if self.options.loadToxFromFilename.get():
+                            patient.setTox("tox" in filename.lower())
+                        patient.setStructure(structure[0])
+                        #patient.setPlan(plan[0])
+                        patient.setPlan(planNames[0])
+                        patientName = filename[:-4]
+                        patient.setCohort(self.dataFolder.split("/")[-1])
+                        patient.setDataFolder(self.dataFolder)
+                        patient.dvh["Dose"] = patient.dvh["Dose"] * doseUnit
+                        patient.setID(f"{patientName}_{patient.getPlan()}_{patient.getStructure()}")
 
                         # Add object to dictionary
                         self.cohort = self.dataFolder.split("/")[-1]

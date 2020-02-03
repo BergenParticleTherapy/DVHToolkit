@@ -109,11 +109,12 @@ class MainMenu(Frame):
         
         Label(self.upperContainer, text=f"DVH tool with NTCP calculator {self.options.PROGRAM_VERSION:.2f} - Helge Pettersen").pack(anchor=N)
         
-        self.loadPatientsButton = Button(self.middleLeftUpperContainer, text="Load patient folder (F)", command=self.loadPatientsCommand, width=self.button_width)
+        self.loadPatientsButton = Button(self.middleLeftUpperContainer, text="Load patient folder (F)",
+                                         command=self.loadPatientsCommand, width=self.button_width)
         self.loadPatientsButton.pack(anchor=N, pady=3)
         Tooltip(self.loadPatientsButton, text="Load patient cohort. The file should contain DVH files in a CSV format. "
                 "Upon loading, additional gEUD files will searched for in a gEUD/ subfolder. If they are not found, they should "
-                "be created using the \"Calculate gEUD splines\" action prior to any LKB calculations.", wraplength=self.wraplength)
+                "be created using the \"Calculate gEUD LUT\" action prior to any LKB calculations.", wraplength=self.wraplength)
 
         self.parent.bind("f", lambda event=None: self.loadPatientsButton.invoke())
         
@@ -125,16 +126,19 @@ class MainMenu(Frame):
         
         self.dvhFileContainer.pack(anchor=W)
         Label(self.dvhFileContainer, text="DVH File type: ").pack(side=LEFT, anchor=W)
-        for mode in ["simple", "ECLIPSE"]:
-            Radiobutton(self.dvhFileContainer, text=mode, variable=self.options.DVHFileType, value=mode, command=self.selectDVHFileTypeCommand).pack(side=LEFT, anchor=W)
+        for mode in ["simple", "ECLIPSE", "RayStation"]:
+            Radiobutton(self.dvhFileContainer, text=mode, variable=self.options.DVHFileType, value=mode,
+                        command=self.selectDVHFileTypeCommand).pack(side=LEFT, anchor=W)
         Tooltip(self.dvhFileContainer, text="Outline of the per-patient CSV files. The \"simple\" style assumes a flat CSV file. "
-                "The \"ECLIPSE\" style includes several metadata lines in the beginning, incl. descriptions of the DVH organ / structure.", wraplength=self.wraplength)
+                "The \"ECLIPSE\" and \"RayStation\" style includes several metadata lines in the beginning, incl. descriptions of the DVH organ / structure.",
+                wraplength=self.wraplength)
         
         self.CSVStyleContainer.pack(anchor=W)
         Label(self.CSVStyleContainer, text="Decimal / Column separator: ").pack(side=LEFT, anchor=W)
         for text, mode in [[", / ;", "commaSemicolon"], [". / ,", "periodComma"], ["Autodetect", "autodetect"]]:
             Radiobutton(self.CSVStyleContainer, text=text, variable=self.options.CSVStyle, value=mode).pack(side=LEFT, anchor=W)
-        Tooltip(self.CSVStyleContainer, text="CSV style: Comma and Semicolon, or Period and Comma for decimal and column separation.", wraplength=self.wraplength)
+        Tooltip(self.CSVStyleContainer, text="CSV style: Comma and Semicolon, or Period and Comma for decimal and column separation.",
+                wraplength=self.wraplength)
                 
         self.customDVHHeaderContainer.pack(anchor=W)
         Label(self.customDVHHeaderContainer, text="Columns in DVH files: ").pack(side=LEFT, anchor=W)
@@ -165,9 +169,11 @@ class MainMenu(Frame):
         self.toxLimitContainer.pack(anchor=W)
         Label(self.toxLimitContainer, text="Toxicity limit (grade): ").pack(side=LEFT, anchor=W)
         for mode in range(5):
-            Radiobutton(self.toxLimitContainer, text=mode, variable=self.options.toxLimit, value=mode, command=self.toxLimitChange).pack(side=LEFT, anchor=W)
+            Radiobutton(self.toxLimitContainer, text=mode, variable=self.options.toxLimit, value=mode,
+                        command=self.toxLimitChange).pack(side=LEFT, anchor=W)
         Tooltip(self.toxLimitContainer, 
-                text="The toxicity threshold. Patients with the chosen grade or higher will be classified with complication.", wraplength=self.wraplength)
+                text="The toxicity threshold. Patients with the chosen grade or higher will be classified with complication.",
+                wraplength=self.wraplength)
 
         self.changeNamingContainer.pack()
         self.changeNamingButton = Button(self.changeNamingContainer, text="Change plan/structure names",
@@ -219,7 +225,8 @@ class MainMenu(Frame):
         self.basinHoppingsTD50sizeContainer.pack(anchor=W)
         self.paramTD50Label = Label(self.basinHoppingsTD50sizeContainer, text="LKB TD50 parameter [Gy]: ")
         self.paramTD50Label.pack(side=LEFT, anchor=W)
-        self.paramTD50Entry.append(Checkbutton(self.basinHoppingsTD50sizeContainer, text="Fixed", variable=self.options.fixTD50, command=self.switchTD50to))
+        self.paramTD50Entry.append(Checkbutton(self.basinHoppingsTD50sizeContainer, text="Fixed",
+                                               variable=self.options.fixTD50, command=self.switchTD50to))
         self.paramTD50Entry[0].pack(side=LEFT, anchor=W)
         for text,mode in [("", self.options.TD50From), ("→", self.options.TD50To)]:
             Label(self.basinHoppingsTD50sizeContainer, text=text).pack(side=LEFT, anchor=W)
@@ -259,7 +266,8 @@ class MainMenu(Frame):
         self.basinHoppingsTemperatureContainer.pack(anchor=W)
         Label(self.basinHoppingsTemperatureContainer, text="G.D. \"basin hopping\" temperature: ").pack(side=LEFT, anchor=W)
         Entry(self.basinHoppingsTemperatureContainer, textvariable=self.options.basinHoppingTemperature, width=5).pack(side=LEFT, anchor=W)
-        Tooltip(self.basinHoppingsTemperatureContainer, text="The expected difference in error between the different local minima.", wraplength=self.wraplength)
+        Tooltip(self.basinHoppingsTemperatureContainer, text="The expected difference in error between the different local minima.",
+                wraplength=self.wraplength)
         
         self.basinHoppingsJumpLenghtsContainer.pack(anchor=W)
         Label(self.basinHoppingsJumpLenghtsContainer, text="G.D. \"basin hopping\" jump lengths: ").pack(side=LEFT, anchor=W)
@@ -336,7 +344,7 @@ class MainMenu(Frame):
         Tooltip(self.confidenceIntervalLikelihoodLimitContainer, text="This is to filter out \"bad\" or at-limit parameter sets. Check LLH histogram to find this value, "
                     "typically -1 to 0 to remove parameters where the LLH is >2 too high and close to 0.", wraplength=self.wraplength)
         
-        if self.options.DVHFileType.get() == "ECLIPSE":
+        if self.options.DVHFileType.get() in ["ECLIPSE", "RayStation"]:
             self.customDVHHeaderEntry['state'] = 'disabled'
         
         if self.options.NTCPcalculation.get() == "Logit":
@@ -370,7 +378,7 @@ class MainMenu(Frame):
         self.logtext.pack(side=LEFT, fill="both", expand=True)
         self.log("----- LOG -----")
         
-        self.buttonCalculateGEUD = Button(self.bottomContainer1, text="Calculate gEUD splines (G)", command=self.calculateGEUDCommand, width=self.button_width, state=DISABLED)
+        self.buttonCalculateGEUD = Button(self.bottomContainer1, text="Calculate gEUD LUT (G)", command=self.calculateGEUDCommand, width=self.button_width, state=DISABLED)
         self.buttonShowGEUDvsN = Button(self.bottomContainer1, text="Show gEUD/n (H)", command=self.showGEUDvsN, width=self.button_width, state=DISABLED)
         self.buttonShowDVH = Button(self.bottomContainer1, text="Show DVHs (D)", command=self.showDVHCommand, width=self.button_width, state=DISABLED)
         self.buttonCalculateDVH = Button(self.bottomContainer1, text="Save DVH values (C)", command=self.calculateDVHCommand, width=self.button_width, state=DISABLED)

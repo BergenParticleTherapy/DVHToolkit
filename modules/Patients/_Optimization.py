@@ -77,9 +77,11 @@ def doMatrixMinimization(self, extraPatients, progress):
     self.bestParameters = [params[0][minIdx[0]], params[1][minIdx[1]], params[2][minIdx[2]]]
     if self.options.NTCPcalculation.get() == "Logit":
         self.bestParameters.pop()
-    
+
+    self.calculateNTCP()
     for cohort in extraPatients:
         cohort.bestParameters = self.bestParameters
+        cohort.calculateNTCP()
         
     if progress: 
         progress['value'] = 0
@@ -203,10 +205,13 @@ def doGradientOptimization(self, extraPatients, progress):
     
     self.bestParameters = res.x
     # was [res.x[0], res.x[1], res.x[2]]
+
+    self.calculateNTCP()
     
     for cohort in extraPatients:
         cohort.bestParameters = self.bestParameters
-        
+        cohort.calculateNTCP()
+
     if progress:
         progress['value'] = 0
     

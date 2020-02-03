@@ -14,115 +14,77 @@ def calculateDVHvalues(self):
     # Add here for specific organ-specific gEUD calculations to DVH output file
     nValues = {'Bladder' : 1/8, 'Rectum' : 1/12, 'Intestine' : 1/4}
     
-    x1 = []; x2 = []; x3 = []; x4 = []; y1 = []; y2 = []; y3 = []; y4 = []; y5 = []; y6 = []
+    patients = set()
+    for patientsInCohort in self.patients.values():
+        for name in patientsInCohort.patients.keys():
+            patients.add(name)
 
-    if self.dvhCheckVarDoseAtVolume.get() and self.dvhCheckVarVolumeAtDose.get():
-        split = self.dvhEntryVar1.get().split(",")
-        volumeFromList = [float(k) for k in split]
-        volumesFromList = ", ".join([f"{k:.3f}" for k in volumeFromList])
-        doseFromList = [float(k) for k in self.dvhEntryVar2.get().split(",")]
-        dosesFromList = ", ".join([f"{k:.3f}" for k in doseFromList])
-     
-        self.log(f"Calculating dose in all patients where the volume fractions are {volumesFromList} + doses are {dosesFromList}.")
-        for patientsInCohort in list(self.patients.values()):
-            for name, patient in list(patientsInCohort.patients.items()):
-                try:
-                    meanDose = patient.getMeanDoseFromEclipse()
-                except:
-                    meanDose = 0
-                doseList = [patient.getDoseAtVolume(k) for k in volumeFromList]
-                doses = ", ".join([f"{k:.3f}" for k in doseList])
-                volumeList = [patient.getVolumeAtDose(k) for k in doseFromList]
-                volumes = ", ".join([f"{k:.3f}" for k in volumeList])
+    columns = ["Cohort", "Name", "Plan", "Structure"]
+    csv = pd.DataFrame(index=sorted(list(patients)), columns=columns)
+    for cohortName, patientsInCohort in self.patients.items():
+        for name, patient in list(patientsInCohort.patients.items()):
+            csv.loc[name, "Plan"] = patient.getPlan()
+            csv.loc[name, "Structure"] = patient.getStructure()
+            csv.loc[name, "Cohort"] = cohortName
+            csv.loc[name, "Name"] = name.split("_")[0]
 
-                structure = patient.getStructure()
-                plan = patient.getPlan()
-                geud = patient.getGEUD(1/8)
-                if structure in nValues:
-                    geud = patient.getGEUD(nValues[structure])
-                x1.append(patientsInCohort.cohort)
-                x2.append(name.split("_")[0])
-                x3.append(structure)
-                x4.append(plan)
-                y1.append(doses)
-                y2.append(volumes)
-                y3.append(meanDose)
-                y4.append(geud)
-                y5.append(patient.getMaxDoseFromEclipse())
-                y6.append(patient.getMinDoseFromEclipse())
+            # ECLIPSE Dose Metrics
+            if self.calculateMeanDose.get():
+                csv.loc[name, "ECLIPSEMeanDose"] = patient.getMeanDoseFromEclipse()
+                csv.loc[name, "ECLIPSEMinDose"] = patient.getMinDoseFromEclipse()
+                csv.loc[name, "ECLIPSEMaxDose"] = patient.getMaxDoseFromEclipse()
 
-    elif self.dvhCheckVarDoseAtVolume.get():
-        split = self.dvhEntryVar1.get().split(",")
-        volumeFromList = [float(k) for k in split]
-        volumes = ", ".join([f"{k:.3f}" for k in volumeFromList])
-        volumes = ", ".join(["-" for k in volumeFromList])
-     
-        self.log(f"Calculating dose in all patients where the volume fraction is {volumes}.")
-        for patientsInCohort in list(self.patients.values()):
-            for name, patient in list(patientsInCohort.patients.items()):
-                try:
-                    meanDose = patient.getMeanDoseFromEclipse()
-                except:
-                    meanDose = 0
-                doseList = [patient.getDoseAtVolume(k) for k in volumeFromList]
-                doses = ", ".join([f"{k:.3f}" for k in doseList])
-                structure = patient.getStructure()
-                plan = patient.getPlan()
-                geud = 0
-                if structure in nValues:
-                    geud = patient.getGEUD(nValues[structure])
-                x1.append(patientsInCohort.cohort)
-                x2.append(name.split("_")[0])
-                x3.append(structure)
-                x4.append(plan)
-                y1.append(doses)
-                y2.append(volumes)
-                y3.append(meanDose)
-                y4.append(geud)
-                y5.append(patient.getMaxDoseFromEclipse())
-                y6.append(patient.getMinDoseFromEclipse())
-    
-    elif self.dvhCheckVarVolumeAtDose.get():
-        doseFromList = [float(k) for k in self.dvhEntryVar2.get().split(",")]
-        doses = ", ".join([f"{k:.3f}" for k in doseFromList])
-        doses = ", ".join(["-" for k in doseFromList])
+            # gEUD
+            if self.dvhCheckVarIncludeGEUD.get():
+                if self.options.fixN.get():
+                    csv.loc[name, "Fixed n-value"] = self.options.nFrom.get()
+                    csv.loc[name, "gEUD [Gy]"] = patient.getGEUD(self.options.nFrom.get())
+                elif patient.getStructure().capitalize() in nValues:
+                    csv.loc[name, "Structure n-value"] = nValues[patient.getStructure()]
+                    csv.loc[name, "gEUD [Gy]"] = patient.getGEUD(nValues[patient.getStructure()])
+                else:
+                    self.log(f"No seriality parameter found or set for patient/structure {name}/{patient.getStructure()}.")
+
+            # DVH Dose Metrics
+            if self.dvhCheckVarDoseAtVolume.get():
+                for volume in self.dvhEntryVar1.get().split(","):
+                    csv.loc[name, f"D{float(volume):g}%"] = patient.getDoseAtVolume(float(volume))
+            if self.dvhCheckVarVolumeAtDose.get():
+                for dose in self.dvhEntryVar2.get().split(","):
+                    csv.loc[name, f"V{float(dose):g}Gy"] = patient.getVolumeAtDose(float(dose))
+
+            # NTCP
+            if self.dvhCheckVarIncludeNTCP.get():
+                if len(self.bestParameters) == 0:
+                    if self.options.NTCPcalculation.get() == "LKB":
+                        if self.options.fixN.get() + self.options.fixM.get() + self.options.fixTD50.get() < 3:
+                            self.log("Must choose fixed N, M, TD50 for LKB/NTCP calculation when no fit is performed")
+                            self.dvhCheckVarIncludeNTCP.set(0)
+                        else:
+                            n = self.options.nFrom.get()
+                            m = self.options.mFrom.get()
+                            TD50 = self.options.TD50From.get()
+                            patient.NTCP = HPM((patient.getGEUD(n) - TD50) / (m * TD50))
+                            
+                    elif self.options.NTCPcalculation.get() == "Logit":
+                        if self.options.fixA.get() + self.options.fixB.get() < 2:
+                            self.log("Must choose fixed a, b for logit NTCP calculation when no fit is performed")
+                            self.dvhCheckVarIncludeNTCP.set(0)
+
+                        else:
+                            a = self.options.aFrom.get()
+                            b = self.options.bFrom.get()
+                            patient.NTCP = 1 - 1 / (1 + exp(a + b * patient.getDpercent()))
+                            
+                csv.loc[name, f"NTCP ({self.options.NTCPcalculation.get()})"] = patient.NTCP
+                
+    if "csv" in self.outputFileNameVar.get():
+        csv.to_csv(self.outputFileNameVar.get(), index=False)
+    elif "xlsx" in self.outputFileNameVar.get():
+        csv.to_excel(self.outputFileNameVar.get())
+    else:
+        self.log("Please specify valid output file type (.csv or .xlsx).")
         
-        self.log(f"Calculating volume in all patients where the dose is {doses} Gy.")
-        for patientsInCohort in list(self.patients.values()):
-            for name, patient in list(patientsInCohort.patients.items()):
-                volumeList = [patient.getVolumeAtDose(k) for k in doseFromList]
-                volumes = ", ".join([f"{k:.3f}" for k in volumeList])
-                structure = patient.getStructure()
-                plan = patient.getPlan()
-                try:
-                    meanDose = patient.getMeanDoseFromEclipse()
-                except:
-                    meanDose = 0
-                geud = 0
-                if structure in nValues:
-                    geud = patient.getGEUD(nValues[structure])
-                x1.append(patientsInCohort.cohort)
-                x2.append(name.split("_")[0])
-                x3.append(structure)
-                x4.append(plan)
-                y1.append(doses)
-                y2.append(volumes)
-                y3.append(meanDose)
-                y4.append(geud)
-                y5.append(patient.getMaxDoseFromEclipse())
-                y6.append(patient.getMinDoseFromEclipse())
-    
-    with open(self.outputFileNameVar.get(), "w") as dvhFile:
-        dosesFromList = ", ".join([f"D{k}%" for k in self.dvhEntryVar1.get().split(",")])
-        volumesFromList = ", ".join([f"V{k}Gy" for k in self.dvhEntryVar2.get().split(",")])
-        meanDoseText = self.calculateMeanDose and ",Mean Dose (ECLIPSE) [Gy],Min Dose (ECLIPSE),Max Dose (ECLIPSE)" or ""
-        dvhFile.write(f"Cohort,Structure,Plan,Patient ID,{dosesFromList},{volumesFromList},gEUD [Gy]{meanDoseText}\n")
-        for cohort, name, structure, plan, dose,volume, meanDose, geud, maxDose, minDose, in zip(x1,x2, x3, x4, y1, y2, y3, y4, y5, y6):
-            meanDoseValue = self.calculateMeanDose and f",{meanDose}"
-            minDoseValue = self.calculateMeanDose and f",{minDose}"
-            maxDoseValue = self.calculateMeanDose and f",{maxDose}"
-            dvhFile.write(f"{cohort},{structure},{plan},{name},{dose},{volume},{geud}{meanDoseValue}{minDoseValue}{maxDoseValue}\n")
-
     self.window.destroy()
 
 def calculateAggregatedDVH(self):
@@ -175,15 +137,15 @@ def calculateAggregatedDVH(self):
             cohorts = set()
             for name, patient in list(patientsInCohort.patients.items()):
                 structure = patient.getStructure()
-                cohort = structure
+                namePx = patient.getID().split("_")[0]
+                cohort = f"{structure}/{namePx}"
+                print(cohort)
                 cohorts.add(cohort)
                 
                 if not cohort in cohortDVH:
-                    print(f"{structure} first")
                     cohortDVH[cohort] = pd.DataFrame({"Dose": patient.dvh["Dose"], f"Volume_{name}" : patient.dvh["Volume"]})
                     cohortDVH[cohort].set_index("Dose", inplace=True)
                 else:
-                    print(f"{structure} not first")
                     newDVH = pd.DataFrame({"Dose": patient.dvh["Dose"], f"Volume_{name}" : patient.dvh["Volume"]})
                     newDVH.set_index("Dose", inplace=True)
                     cohortDVH[cohort] = cohortDVH[cohort].merge(newDVH, how="outer", right_index=True, left_index=True)
@@ -254,7 +216,16 @@ def calculateAggregatedDVH(self):
     elif self.dvhStyleVar2.get() == "comparePlans":
         for k,v in cohortDVH.items():
             c = self.colorVarList[k.split("/")[0]].get()
-            v["Volume agg"].plot(use_index=True, linestyle="-", color=c, label=k)
+
+            structure = k.split("/")[0]            
+            if self.dvhStyleSinglePlot.get():
+                fignum = f"{self.dvhStyleVar1.get().capitalize()} DVH for all structures"
+            else:
+                fignum = f"{self.dvhStyleVar1.get().capitalize()} DVH for {structure}"
+            plt.figure(figsize=(10,7.5), num = fignum)
+
+            v["Volume agg"].plot(use_index=True, linestyle="-", color=c, label=k.split("/")[1])
+
 
             if self.dvhStyleVar3.get():
                 plt.fill_between(v.index, v["Volume agg 2.5"], v["Volume agg 97.5"], color=c, alpha=0.3)

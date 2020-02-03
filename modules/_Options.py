@@ -3,14 +3,14 @@ from tkinter import *
 
 class Options():
     def __init__(self):
-        self.PROGRAM_VERSION = 1.43
+        self.PROGRAM_VERSION = 1.44
         self.Gy = 1
         self.dGy = 0.1
         self.cGy = 0.01
         self.mGy = 0.001
         self.cc = 1
         
-        self.DVHFileType = StringVar(value = "simple") # ['simple', 'ECLIPSE']
+        self.DVHFileType = StringVar(value = "simple") # ['simple', 'ECLIPSE', 'RayStation']
         self.NTCPcalculation = StringVar(value = "Logit") # ['LKB', 'Logit']
         self.NTCPcalculationDpercent = DoubleVar(value = 20) # [0 -> 100]
         self.dataFolder = StringVar(value = "")
