@@ -111,6 +111,7 @@ class Patients:
                 structureMeanDose = []
                 structureMinDose = []
                 structureMaxDose = []
+                structureVolume = []
                 planNames = []
                 planStarts = []
                 planLength = []
@@ -162,6 +163,9 @@ class Patients:
                             
                             if "Mean Dose [" in line:
                                 structureMeanDose.append(float(line.split(": ")[-1]))
+
+                            if "Volume [" in line and not "Total Structure" in line:
+                                structureVolume.append(float(line.split(": ")[-1]))
                                     
                         if "Dose [" in line and "Volume [" in line:
                             if not emptyStructure:
@@ -181,7 +185,7 @@ class Patients:
                 structureLength.append(1000000)
                 planLength.append(1000000)
                 
-                structures = zip(structureNames, structureStarts, structureLength, structureMeanDose, structureMinDose, structureMaxDose)
+                structures = zip(structureNames, structureStarts, structureLength, structureMeanDose, structureMinDose, structureMaxDose, structureVolume)
                 plans = zip(planNames, planStarts, planLength)
                 
                 for structure, plan in zip(structures, plans):
@@ -232,6 +236,7 @@ class Patients:
                         patient.setMeanDoseFromEclipse(structure[3] * doseUnit)
                         patient.setMinDoseFromEclipse(structure[4] * doseUnit)
                         patient.setMaxDoseFromEclipse(structure[5] * doseUnit)
+                        patient.setVolumeFromEclipse(structure[6])
 
                         # Add object to dictionary
                         self.cohort = self.dataFolder.split("/")[-1]

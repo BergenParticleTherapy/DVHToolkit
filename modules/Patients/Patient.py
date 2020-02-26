@@ -21,6 +21,7 @@ class Patient:
         self.meanDoseFromEclipse = None
         self.minDoseFromEclipse = None
         self.maxDoseFromEclipse = None
+        self.volumeFromEclipse = None
         self.lastN = None
         self.lastGEUD = None
         self.GEUDlist = None
@@ -40,6 +41,9 @@ class Patient:
 
     def getMaxDoseFromEclipse(self):
         return self.maxDoseFromEclipse
+
+    def getVolumeFromEclipse(self):
+        return self.volumeFromEclipse
         
     def setMeanDoseFromEclipse(self, d):
         self.meanDoseFromEclipse = d
@@ -49,6 +53,9 @@ class Patient:
         
     def setMaxDoseFromEclipse(self, d):
         self.maxDoseFromEclipse = d
+
+    def setVolumeFromEclipse(self, d):
+        self.volumeFromEclipse = d
         
     def getNTCP(self):
        return self.NTCP 
@@ -101,7 +108,6 @@ class Patient:
 
         # Add the two new columns (avg dose, differential volume) to the dataframe
         self.dvh = self.dvh.assign(avgDose = avgDoseList, diffVolume = diffVolumeList)
-        print(self.dvh.columns)
         self.dvh.columns = ["Dose", "Volume", "Avg. Dose", "Diff. Volume"]
         
         # Remove rows where the differential volume is zero, not needed for calculation, reduce data set by 10%-20%

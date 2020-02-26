@@ -2,6 +2,7 @@ import os, re, random, time
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+import matplotlib.colors as mcolors
 from functools import partial
 
 from tkinter import *
@@ -556,7 +557,7 @@ def calculateDVHCommand(self):
      
     self.dvhEntryVar1 = StringVar(value=0)
     self.dvhEntryVar2 = StringVar(value=0)
-    self.outputFileNameVar = StringVar(value="Output/dvhValues.xslx")
+    self.outputFileNameVar = StringVar(value="Output/dvhValues.xlsx")
     
     Label(self.fileContainer, text="Output file name: ").pack(side=LEFT)
     Entry(self.fileContainer, textvariable=self.outputFileNameVar, width=30).pack(side=LEFT, anchor=W)
@@ -589,7 +590,7 @@ def calculateDVHCommand(self):
     b2.pack(side=LEFT, anchor=N)
 
     self.window.bind('<Return>', lambda event=None: b.invoke())
-    self.window.bind('<Escape>', lambda event=None: b2.invoke())     
+    self.window.bind('<Escape>', lambda event=None: b2.invoke())
     
 def cancelCalculateDVHvalues(self):
     plt.close("all")
@@ -611,7 +612,7 @@ def aggregateDVHCommand(self):
     self.styleContainer4 = Frame(self.window)
     self.styleContainer4.pack(anchor=W)
     self.styleContainer5 = Frame(self.window)
-    self.styleContainer5.pack(anchor=W)
+    self.styleContainer5.pack(anchor=W, fill=X, expand=1)
     self.buttonContainer = Frame(self.window)
     self.buttonContainer.pack(anchor=W, fill=X, expand=1)
     
@@ -619,6 +620,7 @@ def aggregateDVHCommand(self):
     self.dvhStyleVar2 = StringVar(value="compare")
     self.dvhStyleVar3 = IntVar(value=1)
     self.dvhStyleSinglePlot = IntVar(value=1)
+    self.dvhConfidenceInterval = DoubleVar(value=95)
 
     colorVarList = list()
 
@@ -646,7 +648,9 @@ def aggregateDVHCommand(self):
                         ["Mean/median [subtract per patient]", "subtractPerPatient"]]:
         Radiobutton(self.styleContainer2, text=text, value=mode, variable=self.dvhStyleVar2).pack(anchor=W)
     
-    Label(self.styleContainer3, text="Draw 95% confidence interval: ").pack(side=LEFT)
+    Label(self.styleContainer3, text="Draw ").pack(side=LEFT, anchor=W)
+    Entry(self.styleContainer3, textvariable=self.dvhConfidenceInterval, width=4).pack(side=LEFT, anchor=W)
+    Label(self.styleContainer3, text="% confidence interval: ").pack(side=LEFT, anchor=W)
     for text, mode in [["Yes", 1], ["No",0]]:
         Radiobutton(self.styleContainer3, text=text, value=mode, variable=self.dvhStyleVar3).pack(side=LEFT, anchor=W)
 
@@ -655,12 +659,135 @@ def aggregateDVHCommand(self):
     Label(self.colorContainer[0], text="Color scheme: ").pack(side=LEFT)
     for nColors, s in enumerate(structures):
        Label(self.colorContainer[(nColors+1)//3], text=f"{s}: ").pack(side=LEFT)
-       Entry(self.colorContainer[(nColors+1)//3], textvariable=self.colorVarList[s], width=10).pack(side=LEFT)
+       Entry(self.colorContainer[(nColors+1)//3], textvariable=self.colorVarList[s], width=15).pack(side=LEFT)
+    cStr2 = ", ".join(mcolors.CSS4_COLORS)
+    Tooltip(self.styleContainer5, text=f"The available colors are (use color:alpha to set opacity of the {self.dvhConfidenceInterval.get()}% confidence envelope): \n\n {cStr2}.",
+            wraplength=self.wraplength)
+    
+    b2 = Button(self.buttonContainer, text="Show aggregated DVH", command=self.calculateAggregatedDVH, width=self.button_width)
+    b2.pack(side=LEFT, anchor=W)
+    self.window.bind('<Return>', lambda event=None: b2.invoke())
+    Button(self.buttonContainer, text="Custom plot placement", command=self.customAggregatedDVHCommand, width=self.button_width).pack(side=LEFT)
+    b3 = Button(self.buttonContainer, text="Cancel", command=self.cancelCalculateDVHvalues, width=self.button_width)
+    b3.pack(side=LEFT, anchor=W)
+    self.window.bind('<Escape>', lambda event=None: b3.invoke())
+
+def customAggregatedDVHCommand(self):
+    self.aggWindow = Toplevel(self)
+    self.aggWindow.title("Setup aggregated plot")
+    self.aggWindow.focus()
+
+    self.dropdownContainer = Frame(self.aggWindow)
+    self.dropdownContainer.pack(anchor=N)
+
+    ## GRID SETTINGS BASED ON INPUT DROPDOWN MENUS
+    self.aggregateNrows = IntVar(value=1)
+    self.aggregateNcols = IntVar(value=1)
+
+    self.aggregateGridContainers = dict()
+    self.aggregateGridOptions = dict()
+    self.aggregateGridMatches = dict()
+    self.aggregateYlines = list()
+
+    Label(self.dropdownContainer, text="Number of plot rows: ").pack(side=LEFT)
+    OptionMenu(self.dropdownContainer, self.aggregateNrows, *range(1,6), command=self.packCustomAggregateDVHCommand).pack(side=LEFT)
+    Label(self.dropdownContainer, text="Number of plot cols: ").pack(side=LEFT)
+    OptionMenu(self.dropdownContainer, self.aggregateNcols, *range(1,6), command=self.packCustomAggregateDVHCommand).pack(side=LEFT)
+
+    Frame(self.aggWindow, bg="grey", relief=SUNKEN).pack(anchor=W, fill=X, expand=1, padx=5, pady=5)
+
+    self.aggregateGridContainer = Frame(self.aggWindow)
+    self.aggregateGridContainer.pack(anchor=W, fill=X, expand=1)
+
+    self.aggregateButtonContainer = Frame(self.aggWindow)
+    self.aggregateButtonContainer.pack(anchor=W, fill=X, expand=1)
+
+    b2 = Button(self.aggregateButtonContainer, text="Find matches", command=self.matchCustomAggregateDVHCommand, width=self.button_width)
+    b2.pack(side=LEFT, anchor=S)
+    self.aggWindow.bind("<Return>", lambda event=None: b2.invoke())
+
+    b3 = Button(self.aggregateButtonContainer, text="Save & Close", command=self.saveCustomAggregateDVHCommand, width=self.button_width)
+    b3.pack(side=LEFT, anchor=S)
+
+    b1 = Button(self.aggregateButtonContainer, text="Cancel", command=self.cancelCustomAggregateDVHCommand, width=self.button_width)
+    b1.pack(side=LEFT, anchor=S)
+    self.aggWindow.bind("<Escape>", lambda event=None: b1.invoke())
+
+    self.packCustomAggregateDVHCommand(1)
+
+def packCustomAggregateDVHCommand(self, value):
+    for k,v in self.aggregateGridContainers.items():
+        v.pack_forget()
+
+    for v in self.aggregateYlines:
+        v.pack_forget()
         
-    b = Button(self.buttonContainer, text="Show aggregated DVH", command=self.calculateAggregatedDVH, width=self.button_width)
-    b.pack(side=LEFT, anchor=W)
-    self.window.bind('<Return>', lambda event=None: b.invoke())
-    Button(self.buttonContainer, text="Cancel", command=self.cancelCalculateDVHvalues, width=self.button_width).pack(side=LEFT, anchor=W)
+    self.aggregateGridContainers = dict()
+    self.aggregateGridOptions = dict()
+    self.aggregateGridMatches = dict()
+    
+    for y in range(self.aggregateNrows.get()):
+        if y>0:
+            self.aggregateYlines.append(Frame(self.aggregateGridContainer, bg="grey", relief=SUNKEN))
+            self.aggregateYlines[-1].pack(anchor=W, fill=X, expand=1, padx=5, pady=5)
+        self.aggregateGridContainers[y] = Frame(self.aggregateGridContainer)
+        self.aggregateGridContainers[y].pack(anchor=W, fill=X, expand=1)
+        for x in range(self.aggregateNcols.get()):
+            xy = f"{x}{y}"
+            if x>0:
+                Frame(self.aggregateGridContainers[y], bg="grey", relief=SUNKEN).pack(anchor=W, side=LEFT, fill=Y, expand=1, padx=5, pady=5)
+            self.aggregateGridContainers[xy] = Frame(self.aggregateGridContainers[y])
+            self.aggregateGridContainers[xy].pack(anchor=W, side=LEFT, fill=X, expand=1)
+            self.aggregateGridOptions[xy] = { "structureRegex" : StringVar(value=""), "planRegex" : StringVar(value=""),
+                                                 "structureMatches" : set(), "planMatches" : set(),
+                                                 "structureMatchString" : StringVar(value=""), "planMatchString" : StringVar(value="")}
+
+            Label(self.aggregateGridContainers[xy], text=f"PLOT X={x}, Y={y}").pack(anchor=W)
+            
+            structureContainer = Frame(self.aggregateGridContainers[xy])
+            structureContainer.pack(anchor=W)
+            Label(structureContainer, text="Match structures: ").pack(anchor=W, side=LEFT)
+            Entry(structureContainer, textvariable=self.aggregateGridOptions[xy]["structureRegex"], width=25).pack(anchor=W, side=LEFT)
+            Tooltip(structureContainer, text=f"Match using * (wildcard) and | (multiple)", wraplength=self.wraplength)
+            Label(structureContainer, textvariable=self.aggregateGridOptions[xy]["structureMatchString"]).pack(side=LEFT, anchor=W)
+            
+            planContainer = Frame(self.aggregateGridContainers[xy])
+            planContainer.pack(anchor=W)
+            Label(planContainer, text="Match plans: ").pack(anchor=W, side=LEFT)
+            Entry(planContainer, textvariable=self.aggregateGridOptions[xy]["planRegex"], width=25).pack(anchor=W, side=LEFT)
+            Tooltip(planContainer, text=f"Match using * (wildcard) and | (multiple)", wraplength=self.wraplength)
+            Label(planContainer, textvariable=self.aggregateGridOptions[xy]["planMatchString"]).pack(side=LEFT, anchor=W)
+    
+def cancelCustomAggregateDVHCommand(self):
+    self.aggWindow.destroy()
+    self.useCustomAggregateDVHPlot = False
+
+def matchCustomAggregateDVHCommand(self):
+    def match(a,b):
+        a += "$" # Don't match end-of-lines
+        a = a.replace("*", ".*") # Use regex type wildcard
+        return re.match(a, b)
+
+    for k,v in self.aggregateGridOptions.items():
+        v["structureMatches"].clear()
+        v["planMatches"].clear()
+    
+    for cohort_, patientsInCohort in self.patients.items():
+        for name, patient in patientsInCohort.patients.items():
+            plan = patient.getPlan()
+            structure = patient.getStructure()
+
+            for k,v in self.aggregateGridOptions.items():
+                if match(v["structureRegex"].get(), structure): v["structureMatches"].add(structure)
+                if match(v["planRegex"].get(), plan): v["planMatches"].add(plan)
+
+    for k,v in self.aggregateGridOptions.items():
+        v["structureMatchString"].set(", ".join(list(v["structureMatches"])))
+        v["planMatchString"].set(", ".join(list(v["planMatches"])))
+
+def saveCustomAggregateDVHCommand(self):
+    self.aggWindow.destroy()
+    self.useCustomAggregateDVHPlot = True
 
 def changeNamingCommand(self):            
     self.window = Toplevel(self)
@@ -732,14 +859,14 @@ def changeNamingCommand(self):
 
     self.calculateNewNamesButton = Button(self.buttonContainer, text="Calculate new names (Enter)", command=self.calculateNewNamesCommand, width=self.button_width)
     self.calculateNewNamesButton.pack(side=LEFT)
-    self.changeNamingQuitAndSaveButton = Button(self.buttonContainer, text="Save and close (S)", command=self.changeNamingQuitAndSaveCommand, width=self.button_width)
+    self.changeNamingQuitAndSaveButton = Button(self.buttonContainer, text="Save and close", command=self.changeNamingQuitAndSaveCommand, width=self.button_width)
     self.changeNamingQuitAndSaveButton.pack(side=LEFT)
     self.changeNamingQuitButton = Button(self.buttonContainer, text="Cancel (Esc)", command=self.changeNamingQuitCommand, width=self.button_width)
     self.changeNamingQuitButton.pack(side=LEFT)
     
     self.window.bind("<Escape>", lambda event=None: self.changeNamingQuitButton.invoke())
     self.window.bind("<Return>", lambda event=None: self.calculateNewNamesButton.invoke())
-    self.window.bind("s", lambda event=None: self.changeNamingQuitAndSaveButton.invoke())
+    # self.window.bind("s", lambda event=None: self.changeNamingQuitAndSaveButton.invoke())
 
 def calculateNewNamesCommand(self):
     def sub(a,b,txt):

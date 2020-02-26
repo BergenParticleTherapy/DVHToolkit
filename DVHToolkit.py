@@ -70,9 +70,18 @@
 # - More flexibility in DVH plotting
 # - RayStation DVH Input
 
+# Changelog version 1.45 (Released 2020-02-26)
+# - Added customimization of plot window for aggrevated DVH
+
 # TODO:
 # Clean up unneccessary code for CI calculation
 # (remove non TD50 & non-pivotal data? less output)
+
+import sys
+try:
+    sys.path.append("C:\\Users\\jhun\\AppData\\Roaming\\Python\\Python36\\site-packages")
+except:
+    pass
 
 from tkinter import *
 from modules import Tools, Patients, MainMenu

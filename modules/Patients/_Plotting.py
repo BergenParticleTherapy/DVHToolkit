@@ -142,7 +142,7 @@ def drawSigmoid(self, extraPatients, confidenceInterval, correlationLogit, aHist
             plt.title(f"LKB{CIstr}; n = {n:.3f} ({nMin:.3f}-{nMax:.3f}), m = {m:.3f} ({mMin:.3f}-{mMax:.3f}), "
                       f"TD50 = {TD50:.2f} ({TD50_lower:.2f}-{TD50_upper:.2f}) Gy.")
         else:
-             plt.title("LKB{CIstr}; n = {n:.3f}, m = {m:.3f}, TD50 = {TD50:.2f} Gy.")
+             plt.title(f"LKB{CIstr}; n = {n:.3f}, m = {m:.3f}, TD50 = {TD50:.2f} Gy.")
             
     else:
         plt.xlabel(f"D{self.options.NTCPcalculationDpercent.get()}% [Gy]")

@@ -414,5 +414,7 @@ class MainMenu(Frame):
     from ._Actions import calculateAUROCCommand, calculateDVHCommand, cancelCalculateDVHvalues, aggregateDVHCommand
     from ._Actions import showGEUDvsN, switchNto, switchMto, switchTD50to, changeNamingCommand, calculateNewNamesCommand
     from ._Actions import changeNamingQuitCommand, changeNamingQuitAndSaveCommand, drawPlanAndStructureNames
+    from ._Actions import customAggregatedDVHCommand, cancelCustomAggregateDVHCommand, matchCustomAggregateDVHCommand
+    from ._Actions import saveCustomAggregateDVHCommand, packCustomAggregateDVHCommand
 
     from ._Analysis import calculateDVHvalues, calculateAggregatedDVH, calculateLKBuncert
