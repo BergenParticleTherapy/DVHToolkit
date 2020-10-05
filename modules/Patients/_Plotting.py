@@ -100,24 +100,29 @@ def drawSigmoid(self, extraPatients, confidenceInterval, correlationLogit, aHist
     
     px = np.zeros(size)
     py = np.zeros(size)
+    ps = np.zeros(size)
 
     idx = 0
     
-    for patient in list(self.patients.values()):
+    for name, patient in self.patients.items():
         if self.options.NTCPcalculation.get() == "LKB":
             px[idx] = patient.getGEUD(n)
         else:
             px[idx] = patient.getDpercent()
         py[idx] = patient.getTox() >= self.options.toxLimit.get()
+        n = name.split("_")[0].split("tox")[0]
+        #if self.NTCPTimeDict: py[idx] *= np.exp(-(0.38*self.NTCPTimeDict[n]/12)**1.37)
         idx += 1
         
     for cohort in extraPatients:
-        for patient in list(cohort.patients.values()):
+        for name, patient in cohort.patients.items():
             if self.options.NTCPcalculation.get() == "LKB":
                 px[idx] = patient.getGEUD(n)
             else:
                 px[idx] = patient.getDpercent()
             py[idx] = patient.getTox() >= self.options.toxLimit.get()
+            n = name.split("_")[0].split("tox")[0]
+            #if cohort.NTCPTimeDict: py[idx] *= (1-np.exp(-(0.38*cohort.NTCPTimeDict[n]/12)**1.37))
             idx += 1
 
     self.ax1 = NTCPAxis
@@ -126,6 +131,7 @@ def drawSigmoid(self, extraPatients, confidenceInterval, correlationLogit, aHist
 
     self.ax1.plot(x,y, "-", color=style1, zorder=15, linewidth=3, label=f"{self.cohort}")
     self.ax1.plot(px,py, "o", color=style2, zorder=0)
+        
     if self.options.confidenceIntervalShowModels.get():
         for each in yExtra:
             self.ax1.plot(x, each, '-', color="black", linewidth = 0.25, zorder=0)
@@ -135,6 +141,7 @@ def drawSigmoid(self, extraPatients, confidenceInterval, correlationLogit, aHist
                               alpha=0.3, zorder=10) #label=f"{self.options.confidenceIntervalPercent.get():.0f}% confidence interval")
     
     plt.ylim([-0.1,1.1])
+    Dlabel = self.options.useNTCPcc.get() and "cc" or "&"
     CIstr = np.sum(np.ravel(confidenceInterval)) and f" with {self.options.confidenceIntervalPercent.get()}% CI" or ""
     if self.options.NTCPcalculation.get() == "LKB":
         plt.xlabel("gEUD [Gy]")
@@ -145,12 +152,12 @@ def drawSigmoid(self, extraPatients, confidenceInterval, correlationLogit, aHist
              plt.title(f"LKB{CIstr}; n = {n:.3f}, m = {m:.3f}, TD50 = {TD50:.2f} Gy.")
             
     else:
-        plt.xlabel(f"D{self.options.NTCPcalculationDpercent.get()}% [Gy]")
+        plt.xlabel(f"D{self.options.NTCPcalculationDpercent.get()}{Dlabel}[Gy]")
         if not D50_lower:
-            plt.title(f"Logit{CIstr} using D{self.options.NTCPcalculationDpercent.get():.0f}%. "
+            plt.title(f"Logit{CIstr} using D{self.options.NTCPcalculationDpercent.get():.0f}{Dlabel}. "
                       f"TD5 = {self.calculateTDxFromLogit(5):.1f} Gy, TD50 = {self.calculateTDxFromLogit(50):.1f} Gy.")
         else:
-            plt.title(f"Logit{CIstr} using D{self.options.NTCPcalculationDpercent.get():.0f}%. "
+            plt.title(f"Logit{CIstr} using D{self.options.NTCPcalculationDpercent.get():.0f}{Dlabel}. "
                       f"TD5 = {self.calculateTDxFromLogit(5):.1f} ({D5_lower:.1f}-{D5_upper:.1f}) Gy, "
                       f"TD50 = {self.calculateTDxFromLogit(50):.1f} ({D50_lower:.1f}-{D50_upper:.1f}) Gy.")
             log(f"TD5 = {self.calculateTDxFromLogit(5):.1f} ({D5_lower:.1f}-{D5_upper:.1f}) Gy "

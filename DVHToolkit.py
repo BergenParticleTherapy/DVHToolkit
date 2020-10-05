@@ -21,7 +21,7 @@
 
 # Changelog version 1.2
 # - Finalized and verified confidence interval calculations, using bootstrap subtractions
-#   - Removed "pivotal CI" option, substituted with "bootstrap subtraction correction" 
+#   - Removed "pivotal CI" option, substituted with "bootstrap subtraction correction"
 #     which acts on the optimal identified parameter set as well
 
 # Changelog version 1.21
@@ -78,13 +78,10 @@
 # (remove non TD50 & non-pivotal data? less output)
 
 import sys
-try:
-    sys.path.append("C:\\Users\\jhun\\AppData\\Roaming\\Python\\Python36\\site-packages")
-except:
-    pass
-
 from tkinter import *
-from modules import Tools, Patients, MainMenu
+from modules import MainMenu
+print(sys.executable)
+print(sys.version)
 
 root = Tk()
 mainmenu = MainMenu(root)

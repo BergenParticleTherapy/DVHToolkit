@@ -116,23 +116,26 @@ def doGradientOptimization(self, extraPatients, progress):
         
     def funLogitLS(x, *args):
         error = 0
-        for tox, Dpercent in args:
+        for tox, Dpercent, time in args:
             NTCP = 1 - 1 / (1 + exp(x[0] + x[1]*Dpercent))
+            if time and not tox: NTCP *= (1 - exp(-(x[2] * time)**x[3]))
             error += (tox - NTCP) ** 2
         return error
 
     def funLKBLS(x, *args):
         error = 0
-        for tox, GEUDspline in args:
+        for tox, GEUDspline, time in args:
             NTCP = HPM((GEUDspline(x[0]) - x[2]) / (x[1]*x[2]))
+            if time and not tox: NTCP *= (1 - exp(-(x[3] * time)**x[4]))
             error += (tox - NTCP) ** 2
         return error
         
     def funLogitLLH(x, *args):
         error = 0
-        for tox, Dpercent in args:
+        for tox, Dpercent, time in args:
             NTCP = 1 - 1 / (1 + exp(x[0] + x[1]*Dpercent))
-            
+            if time and not tox: NTCP *= (1 - exp(-(x[2] * time)**x[3]))
+
             if tox:
                 error -= log(max(NTCP, 1e-323))
             else:
@@ -142,9 +145,10 @@ def doGradientOptimization(self, extraPatients, progress):
     
     def funLKBLLH(x, *args):
         error = 0
-        for tox, GEUDspline in args:
+        for tox, GEUDspline, time in args:
             NTCP = HPM((GEUDspline(x[0]) - x[2]) / (x[1]*x[2]))
-            
+            if time and not tox: NTCP *= (1 - exp(-(x[3] * time)**x[4]))
+
             if tox:
                 error -= log(max(NTCP, 1e-323))
             else:
@@ -163,34 +167,59 @@ def doGradientOptimization(self, extraPatients, progress):
     argTuple = ()
     if self.options.NTCPcalculation.get() == "Logit":
         for name, patient in list(self.patients.items()):
-            argTuple += ((patient.getTox() >= self.options.toxLimit.get(), patient.getDpercent()),)
+            NTCPTime = self.NTCPTimeDict and self.NTCPTimeDict[name.split("_")[0].split("tox")[0]]/12 or None
+            argTuple += ((patient.getTox() >= self.options.toxLimit.get(), patient.getDpercent(),NTCPTime),)
         for cohort in extraPatients:
             for name, patient in list(cohort.patients.items()):
-                argTuple += ((patient.getTox() >= self.options.toxLimit.get(), patient.getDpercent()),)
+                NTCPTime = cohort.NTCPTimeDict and cohort.NTCPTimeDict[name.split("_")[0].split("tox")[0]]/12 or None
+                argTuple += ((patient.getTox() >= self.options.toxLimit.get(), patient.getDpercent(),NTCPTime),)
                 
     elif self.options.NTCPcalculation.get() == "LKB":
         for name, patient in list(self.patients.items()):
-            argTuple += ((patient.getTox() >= self.options.toxLimit.get(), patient.getGEUD),)
+            NTCPTime = self.NTCPTimeDict and self.NTCPTimeDict[name.split("_")[0].split("tox")[0]]/12 or None
+            argTuple += ((patient.getTox() >= self.options.toxLimit.get(), patient.getGEUD,NTCPTime),)
         for cohort in extraPatients:
             for name, patient in list(cohort.patients.items()):
-                argTuple += ((patient.getTox() >= self.options.toxLimit.get(), patient.getGEUD),)
+                NTCPTime = cohort.NTCPTimeDict and cohort.NTCPTimeDict[name.split("_")[0].split("tox")[0]]/12 or None
+                argTuple += ((patient.getTox() >= self.options.toxLimit.get(), patient.getGEUD,NTCPTime),)
 
     mytakestep = MyTakeStep(self.options)
     if self.options.NTCPcalculation.get() == "Logit":
-        bounds = ((self.options.aFrom.get(), self.options.fixA.get() and self.options.aFrom.get() or self.options.aTo.get()),
-                  (self.options.bFrom.get(), self.options.fixB.get() and self.options.bFrom.get() or self.options.bTo.get()))
-        if len(self.bestParameters):
-            x0 = np.array(self.bestParameters[:2])
+        if not self.NTCPTimeDict:
+            bounds = ((self.options.aFrom.get(), self.options.fixA.get() and self.options.aFrom.get() or self.options.aTo.get()),
+                      (self.options.bFrom.get(), self.options.fixB.get() and self.options.bFrom.get() or self.options.bTo.get()))
         else:
-            x0 = np.array([-10, 0.2])
-    else:
-        bounds = ((self.options.nFrom.get(), self.options.fixN.get() and self.options.nFrom.get() or self.options.nTo.get()), 
-                  (self.options.mFrom.get(), self.options.fixM.get() and self.options.mFrom.get() or self.options.mTo.get()),
-                  (self.options.TD50From.get(), self.options.fixTD50.get() and self.options.TD50From.get() or self.options.TD50To.get()))
+            bounds = ((self.options.aFrom.get(), self.options.fixA.get() and self.options.aFrom.get() or self.options.aTo.get()),
+                      (self.options.bFrom.get(), self.options.fixB.get() and self.options.bFrom.get() or self.options.bTo.get()),
+                      (self.options.lambdaFrom.get(), self.options.fixLambda.get() and self.options.lambdaFrom.get() or self.options.lambdaTo.get()),
+                      (self.options.gammaFrom.get(), self.options.fixGamma.get() and self.options.gammaFrom.get() or self.options.gammaTo.get()))
         if len(self.bestParameters):
             x0 = np.array(self.bestParameters)
         else:
-            x0 = np.array([0.2, 0.5, 50])
+            if not self.NTCPTimeDict:
+                x0 = np.array([-10, 0.2])
+            else:
+                x0 = np.array([-10, 0.2, 0.38, 1.37])
+                
+    else:
+        if not self.NTCPTimeDict:
+            bounds = ((self.options.nFrom.get(), self.options.fixN.get() and self.options.nFrom.get() or self.options.nTo.get()), 
+                      (self.options.mFrom.get(), self.options.fixM.get() and self.options.mFrom.get() or self.options.mTo.get()),
+                      (self.options.TD50From.get(), self.options.fixTD50.get() and self.options.TD50From.get() or self.options.TD50To.get()))
+        else:
+            bounds = ((self.options.nFrom.get(), self.options.fixN.get() and self.options.nFrom.get() or self.options.nTo.get()), 
+                  (self.options.mFrom.get(), self.options.fixM.get() and self.options.mFrom.get() or self.options.mTo.get()),
+                  (self.options.TD50From.get(), self.options.fixTD50.get() and self.options.TD50From.get() or self.options.TD50To.get()),
+                  (self.options.lambdaFrom.get(), self.options.fixLambda.get() and self.options.lambdaFrom.get() or self.options.lambdaTo.get()),
+                  (self.options.gammaFrom.get(), self.options.fixGamma.get() and self.options.gammaFrom.get() or self.options.gammaTo.get()))
+            
+        if len(self.bestParameters):
+            x0 = np.array(self.bestParameters)
+        else:
+            if not self.NTCPTimeDict:
+                x0 = np.array([0.2, 0.5, 50])
+            else:
+                x0 = np.array([0.2, 0.5, 50, 0.38, 1.37])
 
     if self.options.optimizationMetric.get() == "LLH" and self.options.NTCPcalculation.get() == "LKB" : fun = funLKBLLH
     elif self.options.optimizationMetric.get() == "LLH" and self.options.NTCPcalculation.get() == "Logit" : fun = funLogitLLH
