@@ -73,9 +73,18 @@
 # Changelog version 1.45 (Released 2020-02-26)
 # - Added customimization of plot window for aggrevated DVH
 
+# Changelog version 1.5 (Released 2020-10-05)
+# - Changed GUI layout for smaller footprint
+#   - Moved NTCP and Bootstrapping options to their own dialog windows
+# - Lots of small bugfixes
+#   - zeropadding when calculating median / mean of several distinct cohort
+#   - Perform aggregate calculations on all cohorts for tox / notox
+
 # TODO:
 # Clean up unneccessary code for CI calculation
 # (remove non TD50 & non-pivotal data? less output)
+# Make Results class to interface all "bestParameter" + CI histograms
+# When comparing NTCP / bootstrap models, use the cohort window for grouping and not subsequent calculation
 
 import sys
 from tkinter import *
