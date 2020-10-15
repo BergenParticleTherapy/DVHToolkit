@@ -647,7 +647,9 @@ def switchToNTCPcc(self):
 
 
 def calculateNTCPCommand(self, draw=True):
+    self.window.destroy()
     cohortList = list(self.patients.values())
+    
     primaryCohort = cohortList[0]
     secondaryCohorts = len(cohortList) > 1 and cohortList[1:] or {}
     
@@ -655,44 +657,36 @@ def calculateNTCPCommand(self, draw=True):
         cohort.options = self.options
 
     if self.options.NTCPTimeDependent.get():
-        df = pd.read_csv(f"{primaryCohort.dataFolder}.csv", sep=None, engine="python")
-        primaryCohort.NTCPTimeDict = dict(zip(df.Name, df.Time))
-        print(primaryCohort.NTCPTimeDict)
+        for patients in cohortList:
+            df = pd.read_csv(f"{patients.dataFolder}.csv", sep=None, engine="python")
+            patients.NTCPTimeDict = dict(zip(df.Name, df.Time))
     
     if self.options.NTCPcalculation.get() == "Logit":
         for patients in cohortList:
             patients.calculateDpercent(self.options.NTCPcalculationDpercent.get())
-            patients.bestParameters = self.bestParameters
 
     if self.options.optimizationScheme.get() == "GradientDescent":
-        cStr = secondaryCohorts and "s" or ""
-        pList = ",".join(list(self.patients.keys()))
-        self.log(f"Performing {self.options.optimizationScheme.get()} ({self.options.optimizationMetric.get()}) optimization on cohort{cStr}: {pList}.")
-        
-        res = primaryCohort.doGradientOptimization(secondaryCohorts, self.progress)
-        
-        self.bestParameters = res.x
-        self.log("\n".join([f"{k}={v}" for k,v in list(res.items())]))
+        for patients in cohortList:
+            self.log(f"Performing {self.options.optimizationScheme.get()} ({self.options.optimizationMetric.get()}) optimization on cohort: {patients.cohort}.")
+
+            res = patients.doGradientOptimization(self.progress)
+            
+            patients.bestParameters = res.x
+            self.log("\n".join([f"{k}={v}" for k,v in list(res.items())]))
         
     elif self.options.optimizationScheme.get() == "MatrixMinimization":
-        self.log("Calculating toxicity array with matrix size {self.options.matrixSize.get()}")
-        res = primaryCohort.doMatrixMinimization(secondaryCohorts, self.progress)
-        
-        # self.bestParameters = res.x
-        self.results.setParameters(res.x)
-        self.log("\n".join([f"{k}={v}" for k,v in list(res.items())]))
+        for patients in cohortList:
+            self.log("Calculating toxicity array with matrix size {self.options.matrixSize.get()}")
+            res = patients.doMatrixMinimization(self.progress)
+            
+            patients.bestParameters = res.x
+            self.log("\n".join([f"{k}={v}" for k,v in list(res.items())]))
     
     if draw:
-        fignum = 51684 
-        if not self.NTCPAxis or not plt.fignum_exists(fignum):
-            fig, self.NTCPAxis = plt.subplots(figsize=(12,8), num=fignum)
-        else:
-            plt.figure(num=fignum)
-
-        primaryCohort.drawSigmoid(secondaryCohorts, self.confidenceInterval,
-                                                       self.correlationLogit, self.aHist, self.bHist, self.TD50Hist,
-                                                       self.LLHhist, self.log, self.NTCPAxis, self.style1, self.style2)
-
+        plt.figure()
+        for patients in cohortList:
+            patients.drawSigmoid(self.log, self.style1, self.style2)
+        plt.show()
 
 def NTCPcalculationCommand(self):
     if self.options.NTCPcalculation.get() == "Logit":
@@ -849,7 +843,7 @@ def calculateBootstrapWindow(self):
 
     Frame(self.bootstrapContainer, bg="grey", relief=SUNKEN).pack(fill=X, expand=1, anchor=W, pady=5)
 
-    b1 = Button(self.bootstrapButtonContainer, text="NTCP model fit", command=self.calculateLKBuncert, width=self.button_width)
+    b1 = Button(self.bootstrapButtonContainer, text="Run Bootstrap", command=self.calculateLKBuncert, width=self.button_width)
     b2 = Button(self.bootstrapButtonContainer, text="Cancel", command=self.calculateBootstrapWindowCancel, width=self.button_width)
     b1.pack(side=LEFT, anchor=N, pady=10)
     b2.pack(side=LEFT, anchor=N, pady=10)

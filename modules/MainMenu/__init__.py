@@ -20,6 +20,8 @@ class MainMenu(Frame):
         self.button_width = 25
 
         self.bestParameters = []
+
+        """
         self.bestParametersNone = []
         self.bestParametersMean = []
         self.bestParametersMedian = []
@@ -27,12 +29,14 @@ class MainMenu(Frame):
         self.confidenceIntervalNone = [[0, 0], [0, 0], [0, 0]]
         self.confidenceIntervalMean = [[0, 0], [0, 0], [0, 0]]
         self.confidenceIntervalMedian = [[0, 0], [0, 0], [0, 0]]
-        self.correlationLogit = -0.016
+        self.correlationValueLogit = -0.016
         self.calculateMeanDose = IntVar(value=1)
         self.aHist = []
         self.bHist = []
         self.TD50Hist = []
         self.LLHhist = []
+        """
+
         self.paramNEntry = []
         self.paramMEntry = []
         self.paramTD50Entry = []

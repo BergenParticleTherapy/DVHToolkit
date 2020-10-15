@@ -20,6 +20,24 @@ class Patients:
         self.doseUnit = None
         self.options = options
 
+        """
+        self.bestParametersNone = []
+        self.bestParametersMean = []
+        self.bestParametersMedian = []
+        self.confidenceInterval = [[0, 0], [0, 0], [0, 0]]
+        self.confidenceIntervalNone = [[0, 0], [0, 0], [0, 0]]
+        self.confidenceIntervalMean = [[0, 0], [0, 0], [0, 0]]
+        self.confidenceIntervalMedian = [[0, 0], [0, 0], [0, 0]]
+        self.correlationLogit = -0.016
+        self.calculateMeanDose = IntVar(value=1)
+        self.aHist = []
+        self.bHist = []
+        self.TD50Hist = []
+        self.LLHhist = []
+        """
+
+        self.pSpace = None
+
         self.plot = None
         self.ax1 = None
 
@@ -31,6 +49,7 @@ class Patients:
 
     from ._Optimization import doGradientOptimization, doMatrixMinimization, profileLikelihood
     from ._Plotting import drawSigmoid, drawAUROC
+    from ._ParameterSpace import ParameterSpace
 
     def setDataFolder(self, folder):
         self.dataFolder = folder
@@ -491,7 +510,7 @@ class Patients:
 
     def calculateNTCP(self):
         if not len(self.bestParameters):
-            self.log("Could not find best parameters...")
+            print("Could not find best parameters...")
             return
 
         if self.options.NTCPcalculation.get() == "LKB":
@@ -560,7 +579,7 @@ class Patients:
 
     def calculateDpercent(self, percent):
         for patient in list(self.patients.values()):
-            if self.options.useNTCPcc.get():
+            if self.options.useNTCPcc.get() and isinstance(self.volumeFromEclipse, float):
                 patient.calculateDcc(percent)  # percent = cc now
             else:
                 patient.calculateDpercent(percent)

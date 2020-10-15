@@ -124,7 +124,7 @@ class Patient:
 
     def checkGEUDsplines(self, options):
         try:
-            with open(f"{self.dataFolder}/gEUD/gEUD_{self.cohort}_{self.structure}_{options.getCustomHeaderIdx()}_{self.ID}.csv", "r") as fh:
+            with open(f"{self.dataFolder}/gEUD/gEUD_{self.cohort}_{self.structure}_{self.ID}.csv", "r") as fh:
                 GEUDlist = []
                 nList = []
                 for line in fh.readlines():
@@ -146,7 +146,7 @@ class Patient:
 
         if not self.checkGEUDsplines(options):
             #nList = np.arange(options.nFrom.get(), options.nTo.get()+0.04, 0.02)
-            nList = np.arange(0.02, 1.2, 0.02)
+            nList = np.arange(0.05, 2.0, 0.05)
             GEUDlist = []
             for n in nList:
                 ninv = 1 / n
@@ -164,7 +164,7 @@ class Patient:
             # Save result to CSV files
             if not os.path.exists(f"{self.dataFolder}/gEUD/"):
                 os.makedirs(f"{self.dataFolder}/gEUD/")
-            with open(f"{self.dataFolder}/gEUD/gEUD_{self.cohort}_{self.structure}_{options.getCustomHeaderIdx()}_{self.ID}.csv", "wb") as fh:
+            with open(f"{self.dataFolder}/gEUD/gEUD_{self.cohort}_{self.structure}_{self.ID}.csv", "wb") as fh:
                 for n, GEUD in zip(nList, GEUDlist):
                     fh.write(b"%.3f,%.3f\n" % (n, GEUD))
 
@@ -186,7 +186,7 @@ class Patient:
             except IndexError as e:
                 print(f"Error: The wanted value n={n} is not pre-calculated: {e}")
                 print(f"The pre-calculated range is [{self.nList[0]} - {self.nList[-1]}].")
-                raise IndexError(e)
+                return 0
 
         return self.lastGEUD
 

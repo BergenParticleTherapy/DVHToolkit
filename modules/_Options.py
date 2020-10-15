@@ -4,7 +4,7 @@ from tkinter import *
 
 class Options():
     def __init__(self):
-        self.PROGRAM_VERSION = 1.5
+        self.PROGRAM_VERSION = 1.6
         self.Gy = 1
         self.dGy = 0.1
         self.cGy = 0.01

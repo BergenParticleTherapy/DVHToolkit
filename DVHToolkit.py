@@ -60,13 +60,13 @@
 # - More flexibility when plotting aggregated DVHs
 
 # Changelog version 1.42 (Released 2020-01-09)
-# - Added dialog for renaming/combining plans and structures before analysis
+# - Added dialog for renaming/combining plans and structure
 
 # Changelog version 1.43 (Released 2020-01-10)
-# - Allow for empty structures in ECLIPSE file (now: skip, don't crash)
+# - Allow for empty structures in ECLIPSE file (now: skip,
 
 # Changelog version 1.44 (Released 2020-02-03)
-# - Now using pandas for CSV / XLSX conversion from DVH (from manual)
+# - Now using pandas for CSV / XLSX conversion from DVH (fr
 # - More flexibility in DVH plotting
 # - RayStation DVH Input
 
@@ -80,11 +80,10 @@
 #   - zeropadding when calculating median / mean of several distinct cohort
 #   - Perform aggregate calculations on all cohorts for tox / notox
 
-# TODO:
-# Clean up unneccessary code for CI calculation
-# (remove non TD50 & non-pivotal data? less output)
-# Make Results class to interface all "bestParameter" + CI histograms
-# When comparing NTCP / bootstrap models, use the cohort window for grouping and not subsequent calculation
+# Changelog version 1.6 (Released 2020-10-15)
+# - Rewrite of the bootstrap code
+# - New object: ParameterSpace, to handle the model paramaters from bootstrapping: Plot, analyse etc.
+# - With distinct cohorts (patient groups in the left panel), NTCP calculations and bootstrapping will be performed seperately on them.
 
 import sys
 from tkinter import *
