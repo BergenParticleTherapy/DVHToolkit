@@ -683,7 +683,9 @@ def calculateNTCPCommand(self, draw=True):
             self.log("\n".join([f"{k}={v}" for k,v in list(res.items())]))
     
     if draw:
-        plt.figure()
+        plt.figure(figsize=(10,6))
+        self.style1 = ["darkred", "darkblue", "k"] * 100
+        self.style2 = ["r", "b", "k"] * 100
         for patients in cohortList:
             patients.drawSigmoid(self.log, self.style1, self.style2)
         plt.show()

@@ -85,6 +85,9 @@
 # - New object: ParameterSpace, to handle the model paramaters from bootstrapping: Plot, analyse etc.
 # - With distinct cohorts (patient groups in the left panel), NTCP calculations and bootstrapping will be performed seperately on them.
 
+# Changelog version 1.61 (Released 2020-10-16)
+# - Bugfix in calculation of TD50 during bootstrapping
+
 import sys
 from tkinter import *
 from modules import MainMenu

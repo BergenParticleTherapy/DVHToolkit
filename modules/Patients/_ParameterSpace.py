@@ -67,13 +67,17 @@ class ParameterSpace:
                 self.CI[k] = [np.percentile(self.parameterSpace[k], perc) for perc in [self.lowerPercent, self.upperPercent]]
 
         if self.model == "Logit":
-            self.parameterSpace['TD50'] = -self.parameterSpace['b'] / self.parameterSpace['b']
-            self.CI["TD50"] = [-a / b for a, b in zip(self.CI['a'], self.CI['b'])]
+            self.parameterSpace['TD50'] = -self.parameterSpace['a'] / self.parameterSpace['b']
+            self.CI["TD50"] = [np.percentile(self.parameterSpace["TD50"], perc) for perc in [self.lowerPercent, self.upperPercent]]
 
     def printCI(self):
         for k, v in self.parameters.items():
             if v:
                 self.print2(f"{k} = {v} ({self.CI[k][0]:.3f} - {self.CI[k][1]:.3f})")
+
+        if self.model == "Logit":
+            k = "TD50"
+            self.print2(f"TD50 = {self.parameters[k]} ({self.CI[k][0]:.3f} - {self.CI[k][1]:.3f}))")
 
     def trim(self):
         for p in self.parameters.keys():

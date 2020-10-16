@@ -136,10 +136,10 @@ def drawSigmoid(self, log, style1, style2):
                 f"({self.options.confidenceIntervalPercent.get()}% CI)")
             log(f"TD50 = {self.calculateTDxFromLogit(50):.1f} ({D50_lower:.1f}-{D50_upper:.1f}) Gy "
                 f"({self.options.confidenceIntervalPercent.get()}% CI)")
-    plt.ylabel("Toxicity / probability")
+    plt.ylabel("Normal Tissue Complication Probability")
     plt.legend()
 
-    plt.savefig(f"Output/LKBgraph_{self.cohort}_{self.structure}.png")
+    # plt.savefig(f"Output/LKBgraph_{self.cohort}_{self.structure}.png")
 
     if self.options.NTCPcalculation.get() == "LKB":
         of = open(f"Output/LKBmodel_{self.cohort}_{self.structure}.csv", "w")
