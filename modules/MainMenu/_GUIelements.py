@@ -879,6 +879,8 @@ def calculateDVHCommand(self):
     self.radioContainer2.pack(anchor=W)
     self.radioContainer3 = Frame(self.inputContainer)
     self.radioContainer3.pack(anchor=W)
+    #self.radioContainer4 = Frame(self.inputContainer)
+    #self.radioContainer4.pack(anchor=W)
     self.ntcpContainer = Frame(self.inputContainer)
     self.ntcpContainer.pack(anchor=W)
     self.calculateMeanDoseContainer = Frame(self.inputContainer)
@@ -891,11 +893,13 @@ def calculateDVHCommand(self):
 
     self.dvhCheckVarDoseAtVolume = IntVar(value=1)
     self.dvhCheckVarVolumeAtDose = IntVar(value=1)
+    self.dvhCheckVarVolumeAtRelDose = IntVar(value=1)
     self.dvhCheckVarIncludeNTCP = IntVar(value=1)
     self.dvhCheckVarIncludeGEUD = IntVar(value=1)
      
     self.dvhEntryVar1 = StringVar(value=0)
     self.dvhEntryVar2 = StringVar(value=0)
+    self.dvhEntryVar3 = StringVar(value=0)
     self.outputFileNameVar = StringVar(value="Output/dvhValues.xlsx")
     
     Label(self.fileContainer, text="Output file name: ").pack(side=LEFT)
@@ -909,7 +913,12 @@ def calculateDVHCommand(self):
     
     Checkbutton(self.radioContainer2, text="Find volume [%] at doses [Gy] ", variable=self.dvhCheckVarVolumeAtDose).pack(anchor=W, side=LEFT)
     Entry(self.radioContainer2, textvariable=self.dvhEntryVar2).pack(anchor=W, side=LEFT)
-    Tooltip(self.radioContainer1, text="Calculate the volume for multiple dose values by giving a comma-separated list ( e.g. 10, 20, 30)",
+    Tooltip(self.radioContainer2, text="Calculate the volume for multiple dose values by giving a comma-separated list ( e.g. 10, 20, 30)",
+            wraplength=self.wraplength)
+
+    Checkbutton(self.radioContainer3, text="Find volume [%] at doses [% of max] ", variable=self.dvhCheckVarVolumeAtRelDose).pack(anchor=W, side=LEFT)
+    Entry(self.radioContainer3, textvariable=self.dvhEntryVar3).pack(anchor=W, side=LEFT)
+    Tooltip(self.radioContainer3, text="Calculate the volume for multiple dose values by giving a comma-separated list ( e.g. 10, 20, 30)",
             wraplength=self.wraplength)
 
     Checkbutton(self.ntcpContainer, text="Calculate NTCP", variable=self.dvhCheckVarIncludeNTCP).pack(anchor=W)

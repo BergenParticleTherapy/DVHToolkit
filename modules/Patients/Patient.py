@@ -199,6 +199,13 @@ class Patient:
             return 0
         return np.interp(dose, self.dvh["Dose"], self.dvh["Volume"])
 
+    def getVolumeAtRelativeDose(self, relativeDose):
+        """ Requires ECLIPSE metadata """
+
+        maxdose = self.getMaxDoseFromEclipse()
+        volume = self.getVolumeAtDose(relativeDose / 100 * maxdose)
+        return volume
+
     def calculateDpercent(self, percent):
         Dpercent = self.getDoseAtVolume(percent)
         self.Dpercent = Dpercent

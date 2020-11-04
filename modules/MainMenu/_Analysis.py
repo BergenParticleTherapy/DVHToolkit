@@ -58,6 +58,9 @@ def calculateDVHvalues(self):
             if self.dvhCheckVarVolumeAtDose.get():
                 for dose in self.dvhEntryVar2.get().split(","):
                     csv.loc[name, f"V{float(dose):g}Gy"] = patient.getVolumeAtDose(float(dose))
+            if self.dvhCheckVarVolumeAtRelDose.get():
+                for relativeDose in self.dvhEntryVar3.get().split(","):
+                    csv.loc[name, f"V{float(dose):g}%"] = patient.getVolumeAtRelativeDose(float(relativeDose))
 
             # NTCP
             if self.dvhCheckVarIncludeNTCP.get():
