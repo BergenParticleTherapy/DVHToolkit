@@ -58,9 +58,6 @@ def calculateDVHvalues(self):
             if self.dvhCheckVarVolumeAtDose.get():
                 for dose in self.dvhEntryVar2.get().split(","):
                     csv.loc[name, f"V{float(dose):g}Gy"] = patient.getVolumeAtDose(float(dose))
-            if self.dvhCheckVarVolumeAtRelDose.get():
-                for relativeDose in self.dvhEntryVar3.get().split(","):
-                    csv.loc[name, f"V{float(dose):g}%"] = patient.getVolumeAtRelativeDose(float(relativeDose))
 
             # NTCP
             if self.dvhCheckVarIncludeNTCP.get():
@@ -165,6 +162,18 @@ def calculateAggregatedDVH(self):
             cohortDVH[cohort]["Volume agg notox CI lower"] = cohortNoTox.quantile(ql, axis=1)
             cohortDVH[cohort]["Volume agg notox CI upper"] = cohortNoTox.quantile(qu, axis=1)
 
+        if self.dvhSaveAggDVH.get() == 1:
+            if not os.path.exists("Output/aggDVH"):
+                os.makedirs("Output/aggDVH")
+            
+            for cohort in cohortDVH.keys():
+                st = self.dvhStyleVar1.get()
+                cohortStructure, cohortPlan = cohort.split("/")
+                q = self.dvhConfidenceInterval.get()
+                filename = f"Output/aggDVH/{cohortPlan}_{cohortStructure}_{st}.csv"
+                splice = cohortDVH[cohort][["Volume agg", "Volume agg tox", "Volume agg notox", "Volume agg tox CI lower", "Volume agg tox CI upper"]]
+                splice.to_csv(filename, sep=";", decimal=".", index=True, header=True, na_rep="")
+
     elif self.dvhStyleVar2.get() == "comparePlans":  # Compare within Patient
         for cohort_, patientsInCohort in list(self.patients.items()):
             cohorts = set()
@@ -195,6 +204,19 @@ def calculateAggregatedDVH(self):
                 cohortDVH[cohort]["Volume agg CI lower"] = cohortDVH[cohort].quantile(ql, axis=1)
                 cohortDVH[cohort]["Volume agg CI upper"] = cohortDVH[cohort].quantile(qu, axis=1)
 
+        if self.dvhSaveAggDVH.get() == 1:
+            if not os.path.exists("Output/aggDVH"):
+                os.makedirs("Output/aggDVH")
+            
+            for cohort in cohortDVH.keys():
+                st = self.dvhStyleVar1.get()
+                q = self.dvhConfidenceInterval.get()
+                cohortStructure, cohortPlan = cohort.split("/")
+                q = self.dvhConfidenceInterval.get()
+                filename = f"Output/aggDVH/{cohortPlan}_{cohortStructure}_{st}.csv"
+                splice = cohortDVH[cohort][["Volume agg", "Volume agg CI lower", "Volume agg CI upper"]]
+                splice.to_csv(filename, sep=";", decimal=".", index=True, header=True, na_rep="")
+
     else:  # Compare across patients
         for cohort_, patientsInCohort in self.patients.items():
             for name, patient in patientsInCohort.patients.items():
@@ -223,8 +245,22 @@ def calculateAggregatedDVH(self):
             cohortDVH[cohort]["Volume agg CI lower"] = cohortDVH[cohort].quantile(ql, axis=1)
             cohortDVH[cohort]["Volume agg CI upper"] = cohortDVH[cohort].quantile(qu, axis=1)
 
-    # PLOTTING
-    ##########
+        if self.dvhSaveAggDVH.get() == 1:
+            if not os.path.exists("Output/aggDVH"):
+                os.makedirs("Output/aggDVH")
+            
+            for cohort in cohortDVH.keys():
+                st = self.dvhStyleVar1.get()
+                q = self.dvhConfidenceInterval.get()
+                cohortStructure, cohortPlan = cohort.split("/")
+                q = self.dvhConfidenceInterval.get()
+                filename = f"Output/aggDVH/{cohortPlan}_{cohortStructure}_{st}.csv"
+                splice = cohortDVH[cohort][["Volume agg", "Volume agg CI lower", "Volume agg CI upper"]]
+                splice.to_csv(filename, sep=";", decimal=".", index=True, header=True, na_rep="")
+
+    ###############
+    # PLOTTING    #
+    ###############
 
     if self.dvhStyleVar2.get() == "showAll":  # Show all aggregated cohorts
         for k, v in cohortDVH.items():
@@ -290,7 +326,9 @@ def calculateAggregatedDVH(self):
         structures = set([k.split("/")[0] for k in cohortDVH.keys()])
         
         styleIdx = {k:idx for idx,k in enumerate(plans)}
-        style = ["-", (0,(3,5,1,5,1,5)), (0,(5,5))]
+        stylesToUse = {'solid': "-", 'dotted': 'dotted', 'dashed': (0,(5,5)), 'dashdotted': (0,(3,5,1,5,1,5)),
+                       'loosely dotted': (0, (1, 10)), 'loosely dashdotted': (0, (3, 10, 1, 10)), 'loosely dashed': (0, (5, 10))}
+        style = list(stylesToUse.values())
         
         plotsStructure = list()
         plotsPlan = list()

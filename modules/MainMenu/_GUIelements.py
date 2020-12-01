@@ -879,8 +879,6 @@ def calculateDVHCommand(self):
     self.radioContainer2.pack(anchor=W)
     self.radioContainer3 = Frame(self.inputContainer)
     self.radioContainer3.pack(anchor=W)
-    #self.radioContainer4 = Frame(self.inputContainer)
-    #self.radioContainer4.pack(anchor=W)
     self.ntcpContainer = Frame(self.inputContainer)
     self.ntcpContainer.pack(anchor=W)
     self.calculateMeanDoseContainer = Frame(self.inputContainer)
@@ -893,13 +891,11 @@ def calculateDVHCommand(self):
 
     self.dvhCheckVarDoseAtVolume = IntVar(value=1)
     self.dvhCheckVarVolumeAtDose = IntVar(value=1)
-    self.dvhCheckVarVolumeAtRelDose = IntVar(value=1)
     self.dvhCheckVarIncludeNTCP = IntVar(value=1)
     self.dvhCheckVarIncludeGEUD = IntVar(value=1)
      
     self.dvhEntryVar1 = StringVar(value=0)
     self.dvhEntryVar2 = StringVar(value=0)
-    self.dvhEntryVar3 = StringVar(value=0)
     self.outputFileNameVar = StringVar(value="Output/dvhValues.xlsx")
     
     Label(self.fileContainer, text="Output file name: ").pack(side=LEFT)
@@ -913,12 +909,7 @@ def calculateDVHCommand(self):
     
     Checkbutton(self.radioContainer2, text="Find volume [%] at doses [Gy] ", variable=self.dvhCheckVarVolumeAtDose).pack(anchor=W, side=LEFT)
     Entry(self.radioContainer2, textvariable=self.dvhEntryVar2).pack(anchor=W, side=LEFT)
-    Tooltip(self.radioContainer2, text="Calculate the volume for multiple dose values by giving a comma-separated list ( e.g. 10, 20, 30)",
-            wraplength=self.wraplength)
-
-    Checkbutton(self.radioContainer3, text="Find volume [%] at doses [% of max] ", variable=self.dvhCheckVarVolumeAtRelDose).pack(anchor=W, side=LEFT)
-    Entry(self.radioContainer3, textvariable=self.dvhEntryVar3).pack(anchor=W, side=LEFT)
-    Tooltip(self.radioContainer3, text="Calculate the volume for multiple dose values by giving a comma-separated list ( e.g. 10, 20, 30)",
+    Tooltip(self.radioContainer1, text="Calculate the volume for multiple dose values by giving a comma-separated list ( e.g. 10, 20, 30)",
             wraplength=self.wraplength)
 
     Checkbutton(self.ntcpContainer, text="Calculate NTCP", variable=self.dvhCheckVarIncludeNTCP).pack(anchor=W)
@@ -963,12 +954,16 @@ def aggregateDVHCommand(self):
     self.styleContainer4.pack(anchor=W)
     self.styleContainer5 = Frame(self.window)
     self.styleContainer5.pack(anchor=W, fill=X, expand=1)
+    self.styleContainer6 = Frame(self.window)
+    self.styleContainer6.pack(anchor=W, fill=X, expand=1)
+
     self.buttonContainer = Frame(self.window)
     self.buttonContainer.pack(anchor=W, fill=X, expand=1)
     
     self.dvhStyleVar1 = StringVar(value="median")
     self.dvhStyleVar2 = StringVar(value="compare")
     self.dvhStyleVar3 = IntVar(value=1)
+    self.dvhSaveAggDVH = IntVar(value=0)
     self.dvhStyleSinglePlot = IntVar(value=1)
     self.dvhConfidenceInterval = DoubleVar(value=95)
 
@@ -1013,6 +1008,8 @@ def aggregateDVHCommand(self):
     cStr2 = ", ".join(mcolors.CSS4_COLORS)
     Tooltip(self.styleContainer5, text=f"The available colors are (use color:alpha to set opacity of the {self.dvhConfidenceInterval.get()}% confidence envelope): \n\n {cStr2}.",
             wraplength=self.wraplength)
+
+    Checkbutton(self.styleContainer6, text="Save DVH (-> Output/aggDVH)", variable=self.dvhSaveAggDVH).pack(anchor=W)
     
     b2 = Button(self.buttonContainer, text="Show aggregated DVH", command=self.calculateAggregatedDVH, width=self.button_width)
     b2.pack(side=LEFT, anchor=W)
@@ -1020,6 +1017,7 @@ def aggregateDVHCommand(self):
     Button(self.buttonContainer, text="Custom plot placement", command=self.customAggregatedDVHCommand, width=self.button_width).pack(side=LEFT)
     b3 = Button(self.buttonContainer, text="Cancel", command=self.cancelCalculateDVHvalues, width=self.button_width)
     b3.pack(side=LEFT, anchor=W)
+
     self.window.bind('<Escape>', lambda event=None: b3.invoke())
 
 
