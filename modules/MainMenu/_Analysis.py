@@ -344,6 +344,13 @@ def calculateAggregatedDVH(self):
             
             if self.dvhStyleSinglePlot.get():
                 fignum = f"{self.dvhStyleVar1.get().capitalize()} DVH for all structures"
+                if len(list(set(structures))) == 1:
+                    fignum = f"{self.dvhStyleVar1.get().capitalize()} DVH for {structure}"
+                elif len(list(set(plans))) == 1:
+                    fignum = f"{self.dvhStyleVar1.get().capitalize()} DVH for {plan}"
+                if len(list(set(structures))) == 1 and len(list(set(plans))) == 1:
+                    fignum = f"{self.dvhStyleVar1.get().capitalize()} DVH for {plan} / {structure}"
+
                 planLabel = None
             else:
                 fignum = structure
@@ -398,10 +405,15 @@ def calculateAggregatedDVH(self):
                 plt.plot(v["Volume agg"].index, v["Volume agg"], linestyle=ls, color=c, linewidth=2, label=planLabel, alpha=1)
                 plt.xlabel("Dose [Gy]", fontsize=12)
                 plt.ylabel("Volume [%]", fontsize=12)
-                if self.dvhStyleSinglePlot.get():
+                if self.dvhStyleSinglePlot.get() and len(list(set(structures))) > 1:
                     plt.title(f"{self.dvhStyleVar1.get().capitalize()} DVH for all structures")
+                    if len(list(set(plans))) == 1:
+                        plt.title(f"{self.dvhStyleVar1.get().capitalize()} DVH for {plan}")
                 else:
-                    plt.title(f"{self.dvhStyleVar1.get().capitalize()} DVH for {structure}")
+                    if len(list(set(plans))) == 1:
+                        plt.title(f"{self.dvhStyleVar1.get().capitalize()} DVH for {plan} / {structure}")
+                    else:
+                        plt.title(f"{self.dvhStyleVar1.get().capitalize()} DVH for {structure}")
             else:
                 for x in range(self.aggregateNcols.get()):
                     for y in range(self.aggregateNrows.get()):
@@ -429,12 +441,28 @@ def calculateAggregatedDVH(self):
                 custom_lines2 = {k:Line2D([0], [0], color=v, ls="-", lw=2) for k,v in cleaned_colorVarDict.items()}
                 all_legends = list(custom_lines.values()) + [Line2D([],[],linestyle='')] + list(custom_lines2.values())
                 all_labels = list(custom_lines.keys()) + [''] + list(custom_lines2.keys())
-                plt.legend(all_legends, all_labels, handlelength=3)
+                if len(list(set(structures))) == 1:
+                    all_legend = list(custom_lines.values())
+                    all_labels = list(custom_lines.keys())
+                elif len(list(set(plans))) == 1:
+                    all_legend = list(custom_lines2.values())
+                    all_labels = list(custom_lines2.keys())
+
+                if len(list(set(structures))) > 1 or len(list(set(plans))) > 1:
+                    plt.legend(all_legends, all_labels, handlelength=3)
+
             else:
                 custom_lines = {k:Line2D([0], [0], color="k", ls=style[styleIdx[k]], lw=2) for k in plans}
                 custom_lines2 = {k:Line2D([0], [0], color=v, ls="-", lw=2) for k,v in cleaned_colorVarDict.items()}
                 all_legends = list(custom_lines.values()) + [Line2D([],[],linestyle='')] + list(custom_lines2.values())
                 all_labels = list(custom_lines.keys()) + [''] + list(custom_lines2.keys())
+                if len(list(set(structures))) == 1:
+                    all_legend = list(custom_lines.values())
+                    all_labels = list(custom_lines.keys())
+                elif len(list(set(plans))) == 1:
+                    all_legend = list(custom_lines2.values())
+                    all_labels = list(custom_lines2.keys())
+
 
                 for x in range(self.aggregateNcols.get()):
                     for y in range(self.aggregateNrows.get()):
