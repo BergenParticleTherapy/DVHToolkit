@@ -6,7 +6,7 @@ By Helge Egil Seime Pettersen, Haukeland University Hospital, 2019.
 
 The program consists of a single window with some dialog options. Most of the buttons and options are documented with a tooltip, accessed by holding the pointer above the wanted option. All settings are saved upon exiting.
 
-Current version: 1.5
+Current version: 1.62
 
 ![main window](https://raw.githubusercontent.com/BergenParticleTherapy/DVHToolkit/master/figures/mainwindow.PNG)
 
