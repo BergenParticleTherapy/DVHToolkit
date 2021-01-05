@@ -201,10 +201,7 @@ def doGradientOptimization(self, progress):
         if len(self.bestParameters):
             x0 = np.array(self.bestParameters[:2])
         else:
-            if not self.NTCPTimeDict:
-                x0 = np.array([-10, 0.2])
-            else:
-                x0 = np.array([-10, 0.2, 0.38, 1.37])
+            x0 = np.mean(bounds, axis=1)
 
     else:
         if not self.NTCPTimeDict:
@@ -221,10 +218,7 @@ def doGradientOptimization(self, progress):
         if len(self.bestParameters):
             x0 = np.array(self.bestParameters)
         else:
-            if not self.NTCPTimeDict:
-                x0 = np.array([0.2, 0.5, 50])
-            else:
-                x0 = np.array([0.2, 0.5, 50, 0.38, 1.37])
+            x0 = np.mean(bounds, axis=1)
 
     if self.options.optimizationMetric.get() == "LLH" and self.options.NTCPcalculation.get() == "LKB":
         fun = funLKBLLH
@@ -239,7 +233,7 @@ def doGradientOptimization(self, progress):
         fun = None
 
     res = basinhopping(fun, x0, niter=self.options.basinHoppingIterations.get(), T=self.options.basinHoppingTemperature.get(),
-                       minimizer_kwargs={'args': argTuple, 'method': 'TNC', 'bounds': bounds}, take_step=mytakestep, callback=print_fun)
+                       minimizer_kwargs={'args': argTuple, 'method': 'Powell', 'bounds': bounds}, take_step=mytakestep, callback=print_fun)
 
     self.bestParameters = res.x
 

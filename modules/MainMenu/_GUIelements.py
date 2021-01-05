@@ -881,6 +881,12 @@ def calculateDVHCommand(self):
     self.radioContainer3.pack(anchor=W)
     self.ntcpContainer = Frame(self.inputContainer)
     self.ntcpContainer.pack(anchor=W)
+    self.ntcpContainerType = Frame(self.inputContainer)
+    self.ntcpContainerType.pack(anchor=W)
+    self.ntcpContainerParamsLogit = Frame(self.inputContainer)
+    self.ntcpContainerParamsLogit.pack(anchor=W)
+    self.ntcpContainerParamsLKB = Frame(self.inputContainer)
+    self.ntcpContainerParamsLKB.pack(anchor=W)
     self.calculateMeanDoseContainer = Frame(self.inputContainer)
     self.calculateMeanDoseContainer.pack(anchor=W)
     self.calculateGEUDContainer = Frame(self.inputContainer)
@@ -893,6 +899,7 @@ def calculateDVHCommand(self):
     self.dvhCheckVarVolumeAtDose = IntVar(value=1)
     self.dvhCheckVarIncludeNTCP = IntVar(value=1)
     self.dvhCheckVarIncludeGEUD = IntVar(value=1)
+    self.dvhCheckVarCalculateMeanDose = IntVar(value=1)
      
     self.dvhEntryVar1 = StringVar(value=0)
     self.dvhEntryVar2 = StringVar(value=0)
@@ -914,11 +921,32 @@ def calculateDVHCommand(self):
 
     Checkbutton(self.ntcpContainer, text="Calculate NTCP", variable=self.dvhCheckVarIncludeNTCP).pack(anchor=W)
     Tooltip(self.ntcpContainer, text="Calculate the NTCP values (0->1) for all patients. If a model fit has been performed ,"
-           f" the resulting parameters will be applied here ({self.bestParameters}). If not, the parameters must be specified "
-           " in the main menu, under \"fix A/B\" (Logit) or \"fix N/M/TD50\" (LKB).", wraplength=self.wraplength)
-           
-    Checkbutton(self.calculateMeanDoseContainer, text="Include dose metrics from ECLIPSE ", variable=self.calculateMeanDose).pack(anchor=W)
-    Checkbutton(self.calculateGEUDContainer, text="Calculate gEUD ", variable=self.dvhCheckVarIncludeGEUD).pack(anchor=W)
+           f" the resulting parameters will be applied here ({self.bestParameters}). If not, the parameters must be specified.", 
+           wraplength=self.wraplength)
+
+    Label(self.ntcpContainerType, text="NTCP calculation: ").pack(side=LEFT, anchor=W)
+    for text, mode in [("D%/cc + logit", "Logit"), ("LKB", "LKB")]:
+        Radiobutton(self.ntcpContainerType, text=text, variable=self.options.NTCPcalculation, 
+                    value=mode).pack(side=LEFT, anchor=W)
+    Tooltip(self.ntcpContainerType, text="The parameter limits for the LKB model are set below. "
+            "For the D% + logit model, only the percentage value has to be set.", wraplength=self.wraplength)
+
+    Label(self.ntcpContainerParamsLogit, text="Logit/a = ").pack(side=LEFT, anchor=W)
+    Entry(self.ntcpContainerParamsLogit, textvariable=self.options.aFrom).pack(side=LEFT, anchor=W)
+    Label(self.ntcpContainerParamsLogit, text="Logit/b = ").pack(side=LEFT, anchor=W)
+    Entry(self.ntcpContainerParamsLogit, textvariable=self.options.bFrom).pack(side=LEFT, anchor=W)    
+    Label(self.ntcpContainerParamsLKB, text="LKB/n = ").pack(side=LEFT, anchor=W)
+    Entry(self.ntcpContainerParamsLKB, textvariable=self.options.nFrom).pack(side=LEFT, anchor=W)
+    Label(self.ntcpContainerParamsLKB, text="LKB/m = ").pack(side=LEFT, anchor=W)
+    Entry(self.ntcpContainerParamsLKB, textvariable=self.options.mFrom).pack(side=LEFT, anchor=W)        
+    Label(self.ntcpContainerParamsLKB, text="LKB/TD50 = ").pack(side=LEFT, anchor=W)
+    Entry(self.ntcpContainerParamsLKB, textvariable=self.options.TD50From).pack(side=LEFT, anchor=W)        
+
+    Checkbutton(self.calculateMeanDoseContainer, text="Include dose metrics from ECLIPSE ", variable=self.dvhCheckVarCalculateMeanDose).pack(anchor=W)
+    Checkbutton(self.calculateGEUDContainer, text="Calculate gEUD ", variable=self.dvhCheckVarIncludeGEUD).pack(anchor=W, side=LEFT)
+    Label(self.calculateGEUDContainer, text="n = ").pack(anchor=W, side=LEFT)
+    Entry(self.calculateGEUDContainer, textvariable=self.options.nFrom, width=10).pack(anchor=W, side=LEFT)
+
     Tooltip(self.calculateGEUDContainer, text="Calculate the gEUD based on the pre-set fixed N value. If no value is set, a set of default values "
             " based on structure names (bladder=1/8, rectum=1/12, intestine=1/4). (Define more structures in modules/MainMenu/_Analysis.py)",
             wraplength=self.wraplength)
@@ -977,6 +1005,7 @@ def aggregateDVHCommand(self):
     
     colors = ["red", "orange", "darkgreen", "blue", "lightsalmon", "darkviolet",
               "gold", "darkred", "indianred", "seagreen", "magenta", "goldenrod"]
+              
     self.colorVarList = { s : StringVar(value=k) for s,k in zip(structures,colors) }
 
     self.colorContainer = [ Frame(self.styleContainer5) for k in range(len(structures)//3+1) ]

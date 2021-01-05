@@ -577,17 +577,6 @@ class Patients:
             except:
                 print("Could not find dose %.2f cGy in DVH interval." % (dose))
 
-    def getVolumeAtRelativeDose(self, relativeDose):
-        """ Requires ECLIPSE metadata """
-
-        for patient in list(self.patients.values()):
-            try:
-                maxdose = patient.getMaxDoseFromEclipse()
-                volume = patient.getVolumeAtDose(relativeDose / 100 * maxdose)
-                print("For patient %s, at dose %.2f cGy, the volume is %.2f cc." % (patient.getID(), dose, volume))
-            except:
-                print("Could not find dose %.2f cGy in DVH interval." % (dose))
-
     def calculateDpercent(self, percent):
         for patient in list(self.patients.values()):
             if self.options.useNTCPcc.get() and isinstance(self.volumeFromEclipse, float):

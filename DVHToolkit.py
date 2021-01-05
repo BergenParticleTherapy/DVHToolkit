@@ -88,6 +88,10 @@
 # Changelog version 1.61 (Released 2020-10-16)
 # - Bugfix in calculation of TD50 during bootstrapping
 
+# Changelog version 1.62
+# Many small QoL changes in plotting +++
+# A few bugfixes (NTCP calculation, gEUD CSV output, +++)
+
 import sys
 from tkinter import *
 from modules import MainMenu

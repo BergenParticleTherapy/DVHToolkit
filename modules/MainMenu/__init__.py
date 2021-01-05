@@ -30,13 +30,13 @@ class MainMenu(Frame):
         self.confidenceIntervalMean = [[0, 0], [0, 0], [0, 0]]
         self.confidenceIntervalMedian = [[0, 0], [0, 0], [0, 0]]
         self.correlationValueLogit = -0.016
+        self.calculateMeanDose = IntVar(value=1)
         self.aHist = []
         self.bHist = []
         self.TD50Hist = []
         self.LLHhist = []
         """
 
-        self.calculateMeanDose = IntVar(value=1)
         self.paramNEntry = []
         self.paramMEntry = []
         self.paramTD50Entry = []

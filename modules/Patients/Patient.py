@@ -92,6 +92,9 @@ class Patient:
         return self.ID
 
     def createDifferentialDVH(self):
+        if "Avg. Dose" in self.dvh.columns and "Diff. Volume" in self.dvh.columns:
+            return
+
         nrows = self.dvh.shape[0]
         avgDoseList = np.zeros(nrows)
         diffVolumeList = np.zeros(nrows)
@@ -116,7 +119,10 @@ class Patient:
 
         # Add the two new columns (avg dose, differential volume) to the dataframe
         self.dvh = self.dvh.assign(avgDose=avgDoseList, diffVolume=diffVolumeList)
+        print(self.dvh.columns)
         self.dvh.columns = ["Dose", "Volume", "Avg. Dose", "Diff. Volume"]
+        #self.dvh.columns.append("Avg. Dose")
+        #self.dvh.columns.append("Diff. Volume")
 
         # Remove rows where the differential volume is zero, not needed for calculation, reduce data set by 10%-20%
         self.dvh = self.dvh[self.dvh["Diff. Volume"] > 0]
@@ -198,13 +204,6 @@ class Patient:
         if self.dvh.loc[self.dvh["Dose"] > dose]["Volume"].sum() == 0:
             return 0
         return np.interp(dose, self.dvh["Dose"], self.dvh["Volume"])
-
-    def getVolumeAtRelativeDose(self, relativeDose):
-        """ Requires ECLIPSE metadata """
-
-        maxdose = self.getMaxDoseFromEclipse()
-        volume = self.getVolumeAtDose(relativeDose / 100 * maxdose)
-        return volume
 
     def calculateDpercent(self, percent):
         Dpercent = self.getDoseAtVolume(percent)

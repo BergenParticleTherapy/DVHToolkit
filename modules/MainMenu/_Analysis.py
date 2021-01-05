@@ -15,6 +15,12 @@ def calculateDVHvalues(self):
     # Add here for specific organ-specific gEUD calculations to DVH output file
     nValues = {'Bladder': 1 / 8, 'Rectum': 1 / 12, 'Intestine': 1 / 4}
 
+    self.options.fixA.set(1)
+    self.options.fixB.set(1)
+    self.options.fixN.set(1)
+    self.options.fixM.set(1)
+    self.options.fixTD50.set(1)
+
     patients = set()
     for patientsInCohort in self.patients.values():
         for name in patientsInCohort.patients.keys():
@@ -30,7 +36,7 @@ def calculateDVHvalues(self):
             csv.loc[name, "Name"] = name.split("_")[0]
 
             # ECLIPSE Dose Metrics
-            if self.calculateMeanDose.get():
+            if self.dvhCheckVarCalculateMeanDose.get():
                 csv.loc[name, "ECLIPSEMeanDose [Gy]"] = patient.getMeanDoseFromEclipse()
                 csv.loc[name, "ECLIPSEMinDose [Gy]"] = patient.getMinDoseFromEclipse()
                 csv.loc[name, "ECLIPSEMaxDose [Gy]"] = patient.getMaxDoseFromEclipse()
@@ -322,9 +328,13 @@ def calculateAggregatedDVH(self):
         """Use this to create a separate plot window for each structure in the cohort, with lines
             for mean / median values per plan for all patients."""
 
-        plans = set([k.split("/")[1] for k in cohortDVH.keys()])
-        structures = set([k.split("/")[0] for k in cohortDVH.keys()])
+
+        plans_sorted = [k.split("/")[1] for k in cohortDVH.keys()]
+        structures_sorted = [k.split("/")[0] for k in cohortDVH.keys()]
         
+        plans = sorted(set(plans_sorted), key=plans_sorted.index)
+        structures = sorted(set(structures_sorted), key=structures_sorted.index)
+
         styleIdx = {k:idx for idx,k in enumerate(plans)}
         stylesToUse = {'solid': "-", 'dotted': 'dotted', 'dashed': (0,(5,5)), 'dashdotted': (0,(3,5,1,5,1,5)),
                        'loosely dotted': (0, (1, 10)), 'loosely dashdotted': (0, (3, 10, 1, 10)), 'loosely dashed': (0, (5, 10))}
@@ -338,6 +348,9 @@ def calculateAggregatedDVH(self):
             fig, axs = plt.subplots(self.aggregateNrows.get(), self.aggregateNcols.get(), figsize=(13,10), squeeze=False)
             # axs[y][x]
         
+        colors = ["red", "orange", "darkgreen", "blue", "lightsalmon", "darkviolet",
+              "gold", "darkred", "indianred", "seagreen", "magenta", "goldenrod"]
+
         for k,v in cohortDVH.items():
             plan = k.split("/")[1]
             structure = k.split("/")[0]
@@ -369,6 +382,8 @@ def calculateAggregatedDVH(self):
             else:
                 alpha1 = 0.3
                 alpha2 = 0.7
+
+            # c = colors.pop(0)
                 
             if self.dvhStyleVar3.get():
                 if not self.useCustomAggregateDVHPlot:
@@ -434,33 +449,34 @@ def calculateAggregatedDVH(self):
                 plt.legend()
 
         cleaned_colorVarDict = { k:v.get().split(":")[0] for k,v in self.colorVarList.items() }
-        
+
         if self.dvhStyleSinglePlot.get():
             if not self.useCustomAggregateDVHPlot:
-                custom_lines = {k:Line2D([0], [0], color="k", ls=style[styleIdx[k]], lw=2) for k in plans}
+                #custom_lines = {k:Line2D([0], [0], color="k", ls=style[styleIdx[k]], lw=2) for k,v in plans}
+                custom_lines = {k:Line2D([0], [0], color=v, ls=style[styleIdx[k]], lw=2) for k,v in zip(plans, colors)}
                 custom_lines2 = {k:Line2D([0], [0], color=v, ls="-", lw=2) for k,v in cleaned_colorVarDict.items()}
                 all_legends = list(custom_lines.values()) + [Line2D([],[],linestyle='')] + list(custom_lines2.values())
                 all_labels = list(custom_lines.keys()) + [''] + list(custom_lines2.keys())
                 if len(list(set(structures))) == 1:
-                    all_legend = list(custom_lines.values())
+                    all_legends = list(custom_lines.values())
                     all_labels = list(custom_lines.keys())
                 elif len(list(set(plans))) == 1:
-                    all_legend = list(custom_lines2.values())
+                    all_legends = list(custom_lines2.values())
                     all_labels = list(custom_lines2.keys())
 
                 if len(list(set(structures))) > 1 or len(list(set(plans))) > 1:
                     plt.legend(all_legends, all_labels, handlelength=3)
 
             else:
-                custom_lines = {k:Line2D([0], [0], color="k", ls=style[styleIdx[k]], lw=2) for k in plans}
+                custom_lines = {k:Line2D([0], [0], color=v, ls=style[styleIdx[k]], lw=2) for k,v in zip(plans, colors)}
                 custom_lines2 = {k:Line2D([0], [0], color=v, ls="-", lw=2) for k,v in cleaned_colorVarDict.items()}
                 all_legends = list(custom_lines.values()) + [Line2D([],[],linestyle='')] + list(custom_lines2.values())
                 all_labels = list(custom_lines.keys()) + [''] + list(custom_lines2.keys())
                 if len(list(set(structures))) == 1:
-                    all_legend = list(custom_lines.values())
+                    all_legends = list(custom_lines.values())
                     all_labels = list(custom_lines.keys())
                 elif len(list(set(plans))) == 1:
-                    all_legend = list(custom_lines2.values())
+                    all_legends = list(custom_lines2.values())
                     all_labels = list(custom_lines2.keys())
 
 
@@ -487,8 +503,11 @@ def calculateAggregatedDVH(self):
         custom_lines = {k:Line2D([0], [0], color="k", ls=k, lw=2) for k in style}
         custom_lines2 = {k:Line2D([0], [0], color=k, ls='-', lw=2) for k in colorSet.values()}
 
-        plans = sorted(set([k.split("/")[1] for k in cohortDVH.keys()]))
-        structures = sorted(set([k.split("/")[0] for k in cohortDVH.keys()]))
+        plans_sorted = [k.split("/")[1] for k in cohortDVH.keys()]
+        structures_sorted = [k.split("/")[0] for k in cohortDVH.keys()]
+        
+        plans = sorted(set(plans_sorted), key=plans_sorted.index)
+        structures = sorted(set(structures_sorted), key=structures_sorted.index)
 
         cohortSum = {}
         for plan in plans:
