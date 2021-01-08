@@ -299,6 +299,9 @@ def calculateAggregatedDVH(self):
                 alpha1 = 0.3
                 alpha2 = 0.7
 
+            if self.dvhStyleBlackPlot.get():
+                c = "k"
+
             structure = k.split("/")[0]
             if self.dvhStyleSinglePlot.get():
                 fignum = f"{self.dvhStyleVar1.get().capitalize()} DVH for all structures"
@@ -384,6 +387,8 @@ def calculateAggregatedDVH(self):
                 alpha2 = 0.7
 
             # c = colors.pop(0)
+            if self.dvhStyleBlackPlot.get():
+                c = "k"
                 
             if self.dvhStyleVar3.get():
                 if not self.useCustomAggregateDVHPlot:
@@ -452,9 +457,15 @@ def calculateAggregatedDVH(self):
 
         if self.dvhStyleSinglePlot.get():
             if not self.useCustomAggregateDVHPlot:
-                #custom_lines = {k:Line2D([0], [0], color="k", ls=style[styleIdx[k]], lw=2) for k,v in plans}
-                custom_lines = {k:Line2D([0], [0], color=v, ls=style[styleIdx[k]], lw=2) for k,v in zip(plans, colors)}
-                custom_lines2 = {k:Line2D([0], [0], color=v, ls="-", lw=2) for k,v in cleaned_colorVarDict.items()}
+                if self.dvhStyleBlackPlot.get():
+                    custom_lines = {k:Line2D([0], [0], color="k", ls=style[styleIdx[k]], lw=2) for k,v in zip(plans, colors)}
+                    custom_lines2 = {k:Line2D([0], [0], color="k", ls="-", lw=2) for k,v in cleaned_colorVarDict.items()}
+                else:
+                    if len(list(set(structures))) == 1: # Plan lines @ structure colors if one structure, black if more
+                        custom_lines = {k:Line2D([0], [0], color=c, ls=style[styleIdx[k]], lw=2) for k,v in zip(plans, colors)}
+                    else:
+                        custom_lines = {k:Line2D([0], [0], color="k", ls=style[styleIdx[k]], lw=2) for k,v in zip(plans, colors)}
+                    custom_lines2 = {k:Line2D([0], [0], color=v, ls="-", lw=2) for k,v in cleaned_colorVarDict.items()}
                 all_legends = list(custom_lines.values()) + [Line2D([],[],linestyle='')] + list(custom_lines2.values())
                 all_labels = list(custom_lines.keys()) + [''] + list(custom_lines2.keys())
                 if len(list(set(structures))) == 1:
@@ -468,8 +479,12 @@ def calculateAggregatedDVH(self):
                     plt.legend(all_legends, all_labels, handlelength=3)
 
             else:
-                custom_lines = {k:Line2D([0], [0], color=v, ls=style[styleIdx[k]], lw=2) for k,v in zip(plans, colors)}
-                custom_lines2 = {k:Line2D([0], [0], color=v, ls="-", lw=2) for k,v in cleaned_colorVarDict.items()}
+                if self.dvhStyleBlackPlot.get():
+                    custom_lines = {k:Line2D([0], [0], color="k", ls=style[styleIdx[k]], lw=2) for k,v in zip(plans, colors)}
+                    custom_lines2 = {k:Line2D([0], [0], color="k", ls="-", lw=2) for k,v in cleaned_colorVarDict.items()}    
+                else:
+                    custom_lines = {k:Line2D([0], [0], color=v, ls=style[styleIdx[k]], lw=2) for k,v in zip(plans, colors)}
+                    custom_lines2 = {k:Line2D([0], [0], color=v, ls="-", lw=2) for k,v in cleaned_colorVarDict.items()}
                 all_legends = list(custom_lines.values()) + [Line2D([],[],linestyle='')] + list(custom_lines2.values())
                 all_labels = list(custom_lines.keys()) + [''] + list(custom_lines2.keys())
                 if len(list(set(structures))) == 1:
@@ -501,7 +516,10 @@ def calculateAggregatedDVH(self):
         'Rectum': 'seagreen', 'Intestine': 'magenta', 'Bowel': 'magenta', 'Bladder': 'goldenrod' }
         
         custom_lines = {k:Line2D([0], [0], color="k", ls=k, lw=2) for k in style}
-        custom_lines2 = {k:Line2D([0], [0], color=k, ls='-', lw=2) for k in colorSet.values()}
+        if self.dvhStyleBlackPlot.get():
+            custom_lines2 = {k:Line2D([0], [0], color="k", ls='-', lw=2) for k in colorSet.values()}
+        else:
+            custom_lines2 = {k:Line2D([0], [0], color=k, ls='-', lw=2) for k in colorSet.values()}
 
         plans_sorted = [k.split("/")[1] for k in cohortDVH.keys()]
         structures_sorted = [k.split("/")[0] for k in cohortDVH.keys()]
@@ -553,6 +571,8 @@ def calculateAggregatedDVH(self):
         plotsStructure = list()
         for structure in structures:
             c = colorSet[structure]
+            if self.dvhStyleBlackPlot.get():
+                c = "k"
             ls = '-'
             
             if self.dvhStyleVar2.get() == "subtract":

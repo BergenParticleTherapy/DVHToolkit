@@ -978,6 +978,8 @@ def aggregateDVHCommand(self):
     self.styleContainer2.pack(anchor=W)
     self.styleContainer3 = Frame(self.window)
     self.styleContainer3.pack(anchor=W)
+    self.styleContainer35 = Frame(self.window)
+    self.styleContainer35.pack(anchor=W)
     self.styleContainer4 = Frame(self.window)
     self.styleContainer4.pack(anchor=W)
     self.styleContainer5 = Frame(self.window)
@@ -990,9 +992,10 @@ def aggregateDVHCommand(self):
     
     self.dvhStyleVar1 = StringVar(value="median")
     self.dvhStyleVar2 = StringVar(value="compare")
-    self.dvhStyleVar3 = IntVar(value=1)
+    self.dvhStyleVar3 = IntVar(value=0)
     self.dvhSaveAggDVH = IntVar(value=0)
     self.dvhStyleSinglePlot = IntVar(value=1)
+    self.dvhStyleBlackPlot = IntVar(value=0)
     self.dvhConfidenceInterval = DoubleVar(value=95)
 
     colorVarList = list()
@@ -1028,6 +1031,7 @@ def aggregateDVHCommand(self):
     for text, mode in [["Yes", 1], ["No",0]]:
         Radiobutton(self.styleContainer3, text=text, value=mode, variable=self.dvhStyleVar3).pack(side=LEFT, anchor=W)
 
+    Checkbutton(self.styleContainer35, text="Black/white plot? ", variable=self.dvhStyleBlackPlot).pack(anchor=W)
     Checkbutton(self.styleContainer4, text="Single plot window? ", variable=self.dvhStyleSinglePlot).pack(anchor=W)
     
     Label(self.colorContainer[0], text="Color scheme: ").pack(side=LEFT)
