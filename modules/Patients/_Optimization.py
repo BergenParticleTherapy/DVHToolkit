@@ -2,12 +2,27 @@ from math import *
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as st
-from scipy.optimize import basinhopping
+from scipy.optimize import basinhopping, minimize
 
 from tkinter import *
 from tkinter import ttk
 
 from ..Tools import *
+
+
+def gradient_respecting_bounds(bounds, fun, eps=1e-8):
+    """bounds: list of tuples (lower, upper)
+        FROM https://stackoverflow.com/questions/52208363/scipy-minimize-violates-given-bounds"""
+
+    def gradient(x):
+        fx = fun(x)
+        grad = np.zeros(len(x))
+        for k in range(len(x)):
+            d = np.zeros(len(x))
+            d[k] = eps if x[k] + eps <= bounds[k][1] else -eps
+            grad[k] = (fun(x + d) - fx) / d[k]
+        return grad
+    return gradient
 
 
 def doMatrixMinimization(self, progress):
@@ -120,6 +135,12 @@ def doGradientOptimization(self, progress):
                 x[0] += np.random.uniform(-s * self.options.basinHoppingNsize.get(), s * self.options.basinHoppingNsize.get())
                 x[1] += np.random.uniform(-s * self.options.basinHoppingMsize.get(), s * self.options.basinHoppingMsize.get())
                 x[2] += np.random.uniform(-s * self.options.basinHoppingTD50size.get(), s * self.options.basinHoppingTD50size.get())
+
+            eps = 1e-6
+            for idx in range(len(x)):  # Don't push x beyond bounds
+                x[idx] = max(x[idx], bounds[idx][0]) + eps
+                x[idx] = min(x[idx], bounds[idx][1]) - eps
+
             return x
 
     def funLogitLS(x, *args):
@@ -233,7 +254,8 @@ def doGradientOptimization(self, progress):
         fun = None
 
     res = basinhopping(fun, x0, niter=self.options.basinHoppingIterations.get(), T=self.options.basinHoppingTemperature.get(),
-                       minimizer_kwargs={'args': argTuple, 'method': 'Powell', 'bounds': bounds}, take_step=mytakestep, callback=print_fun)
+                       minimizer_kwargs={'args': argTuple, 'method': 'TNC', 'bounds': bounds},
+                       take_step=mytakestep, callback=print_fun)
 
     self.bestParameters = res.x
 
