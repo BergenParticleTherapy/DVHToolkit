@@ -171,7 +171,6 @@ def calculateLKBuncert(self):
         patients.pSpace.setBootstrapCorrectionMethod(self.options.bootstrapCorrectionMethod.get())
         patients.pSpace.calculateCI()
         patients.pSpace.applyPivot()
-        patients.pSpace.printCI()
         patients.pSpace.writeToFile()
 
         self.log(f"\nFinished Confidence Interval tests for cohort {cohort} ({(time2-time1)/60:.1f} minutes).")

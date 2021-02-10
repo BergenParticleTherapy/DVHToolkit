@@ -30,13 +30,13 @@ class MainMenu(Frame):
         self.confidenceIntervalMean = [[0, 0], [0, 0], [0, 0]]
         self.confidenceIntervalMedian = [[0, 0], [0, 0], [0, 0]]
         self.correlationValueLogit = -0.016
-        self.calculateMeanDose = IntVar(value=1)
         self.aHist = []
         self.bHist = []
         self.TD50Hist = []
         self.LLHhist = []
         """
 
+        self.calculateMeanDose = IntVar(value=1)
         self.paramNEntry = []
         self.paramMEntry = []
         self.paramTD50Entry = []
@@ -172,8 +172,10 @@ class MainMenu(Frame):
                                          command=self.changeNamingCommand, width=self.button_width, state=DISABLED)
         self.changeNamingButton.pack()
 
+        """
         if self.options.DVHFileType.get() in ["ECLIPSE", "RayStation"]:
             self.customDVHHeaderEntry['state'] = 'disabled'
+        """
 
         self.logtext = Text(self.middleRightLowerContainer, height=25, width=75)
         self.scrollbar = Scrollbar(self.middleRightLowerContainer)

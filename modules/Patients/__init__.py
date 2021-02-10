@@ -226,14 +226,14 @@ class Patients:
                 for structure, plan in zip(structures, plans):
                     if match(self.options.structureToUse.get(), structure[0]) and match(self.options.planToUse.get(), plan[0]):
                         try:
-                            headers = self.customDVHHeader.get().split(",")
+                            headers = self.options.customDVHHeader.get().split(",")
                         except:
                             headers = ["Dose", "Relative dose", "Volume"]
 
                         dvh = pd.read_csv(self.getFilePath(filename), header=None, names=headers,
                                           usecols=["Dose", "Volume"], decimal=".", sep="\s+",
                                           skiprows=structure[1], nrows=structure[2], engine="python")
-
+                    
                         if np.sum(dvh.isnull().values):
                             headers = ["Dose", "Volume"]
                             dvh = pd.read_csv(self.getFilePath(filename), header=None, names=headers,
@@ -573,6 +573,17 @@ class Patients:
         for patient in list(self.patients.values()):
             try:
                 volume = patient.getVolumeAtDose(dose)
+                print("For patient %s, at dose %.2f cGy, the volume is %.2f cc." % (patient.getID(), dose, volume))
+            except:
+                print("Could not find dose %.2f cGy in DVH interval." % (dose))
+
+    def getVolumeAtRelativeDose(self, relativeDose):
+        """ Requires ECLIPSE metadata """
+
+        for patient in list(self.patients.values()):
+            try:
+                maxdose = patient.getMaxDoseFromEclipse()
+                volume = patient.getVolumeAtDose(relativeDose / 100 * maxdose)
                 print("For patient %s, at dose %.2f cGy, the volume is %.2f cc." % (patient.getID(), dose, volume))
             except:
                 print("Could not find dose %.2f cGy in DVH interval." % (dose))

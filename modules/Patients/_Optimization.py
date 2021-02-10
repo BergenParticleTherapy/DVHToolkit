@@ -2,7 +2,7 @@ from math import *
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as st
-from scipy.optimize import basinhopping, minimize
+from scipy.optimize import basinhopping
 
 from tkinter import *
 from tkinter import ttk

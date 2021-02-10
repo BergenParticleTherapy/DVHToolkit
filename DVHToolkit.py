@@ -92,6 +92,12 @@
 # Many small QoL changes in plotting +++
 # A few bugfixes (NTCP calculation, gEUD CSV output, +++)
 
+# Changelog version 1.63
+# Codebase merge from two different development environment
+# Added support for variable ECLIPSE column orders
+# Bugfix in interpolation when the dose mesh varies inside cohort
+
+
 import sys
 from tkinter import *
 from modules import MainMenu

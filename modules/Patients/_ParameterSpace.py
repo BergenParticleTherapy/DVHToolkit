@@ -113,13 +113,16 @@ class ParameterSpace:
             if self.CI[p][1] > lim[1]:
                 self.CI[p] = [k - (self.CI[p][1] - lim[1]) for k in self.CI[p]]
 
+    def printResults(self, log):
+        pString = ", ".join([f"{k} = {v:.3f}" for k, v in self.parameters.items()])
+        self.print2(f"The original parameters from the NTCP fit were {pString}.")
+
         correctionStatistics = {'mean': {p: np.mean(self.parameterSpace[p]) for p in self.parameters.keys()},
                                 'median': {p: np.median(self.parameterSpace[p]) for p in self.parameters.keys()},
                                 'none': {k: v for k, v in self.parameters.items()}}
 
         self.parameters = {k: 2 * v - correctionStatistics[self.bootstrapCorrectionMethod][k] for k, v in self.parameters.items()}
 
-    def printResults(self, log):
         pString = ", ".join([f"{k} = {v:.3f}" for k, v in self.parameters.items()])
         self.print2(f"Using the {self.bootstrapCorrectionMethod} pivot bias correction method, the corrected best fits were {pString}.")
 
@@ -128,7 +131,7 @@ class ParameterSpace:
             self.print2(f"{p}\t= [{self.CI[p][0]:.2f}, {self.CI[p][1]:.2f}]")
 
     def plotResults(self):
-        nPlots = 6  # self.model == "LKB" and 6 or 5
+        nPlots = self.model == "LKB" and 6 or 6
         fig, axs = plt.subplots(1, nPlots, sharex=False, sharey=False, figsize=(4 * nPlots, 5))
 
         plt.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
@@ -161,10 +164,10 @@ class ParameterSpace:
             ci_95[p] = [2 * parameters[p] - np.percentile(self.parameterSpace[p], k) for k in [97.5, 2.5]]
             ci_68[p] = [2 * parameters[p] - np.percentile(self.parameterSpace[p], k) for k in [84, 16]]
 
+            print(p, ci_95[p])
+
             filter_95 *= (self.parameterSpace[p] >= ci_95[p][0]) & (self.parameterSpace[p] <= ci_95[p][1])
             filter_68 *= (self.parameterSpace[p] >= ci_68[p][0]) & (self.parameterSpace[p] <= ci_68[p][1])
-
-            print(p, ci_95[p])
 
         if self.model == "LKB":
             for secondPar in ['n', 'm']:

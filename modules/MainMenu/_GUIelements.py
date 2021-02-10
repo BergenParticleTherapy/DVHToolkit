@@ -219,10 +219,13 @@ def customDVHHeaderCommand(self):
 
 
 def selectDVHFileTypeCommand(self):
+    pass
+    """
     if self.options.DVHFileType.get() in ["ECLIPSE", "RayStation"]:
         self.customDVHHeaderEntry['state'] = 'disabled'
     else:
         self.customDVHHeaderEntry['state'] = 'normal'
+    """
 
 
 def showDVHCommand(self):
@@ -292,7 +295,7 @@ def showDVHPlotCommand(self):
     if self.options.dvhPlotSeparatePlots.get() == "plan":
         for plan in plans:
             plotDict[plan] = idx
-            plt.figure(idx, figsize=(15,10))
+            plt.figure(idx, figsize=(8,5))
             plt.title(f"DVHs for {plan}")
             plt.xlabel("Dose [Gy]")
             plt.ylabel("Volume [%]")
@@ -301,7 +304,7 @@ def showDVHPlotCommand(self):
     elif self.options.dvhPlotSeparatePlots.get() == "structure":
         for structure in structures:
             plotDict[structure] = idx
-            plt.figure(idx, figsize=(15,10))
+            plt.figure(idx, figsize=(8,5))
             plt.title(f"DVHs for {structure}")
             plt.xlabel("Dose [Gy]")
             plt.ylabel("Volume [%]")
@@ -309,7 +312,7 @@ def showDVHPlotCommand(self):
             idx += 1
     else:
         plotDict[0] = 1
-        plt.figure(1, figsize=(15,10))
+        plt.figure(1, figsize=(8,5))
         plt.title("All DVHs")
         plt.xlabel("Dose [Gy]")
         plt.ylabel("Volume [%]")
@@ -879,6 +882,8 @@ def calculateDVHCommand(self):
     self.radioContainer2.pack(anchor=W)
     self.radioContainer3 = Frame(self.inputContainer)
     self.radioContainer3.pack(anchor=W)
+    #self.radioContainer4 = Frame(self.inputContainer)
+    #self.radioContainer4.pack(anchor=W)
     self.ntcpContainer = Frame(self.inputContainer)
     self.ntcpContainer.pack(anchor=W)
     self.ntcpContainerType = Frame(self.inputContainer)
@@ -916,7 +921,12 @@ def calculateDVHCommand(self):
     
     Checkbutton(self.radioContainer2, text="Find volume [%] at doses [Gy] ", variable=self.dvhCheckVarVolumeAtDose).pack(anchor=W, side=LEFT)
     Entry(self.radioContainer2, textvariable=self.dvhEntryVar2).pack(anchor=W, side=LEFT)
-    Tooltip(self.radioContainer1, text="Calculate the volume for multiple dose values by giving a comma-separated list ( e.g. 10, 20, 30)",
+    Tooltip(self.radioContainer2, text="Calculate the volume for multiple dose values by giving a comma-separated list ( e.g. 10, 20, 30)",
+            wraplength=self.wraplength)
+
+    Checkbutton(self.radioContainer3, text="Find volume [%] at doses [% of max] ", variable=self.dvhCheckVarVolumeAtRelDose).pack(anchor=W, side=LEFT)
+    Entry(self.radioContainer3, textvariable=self.dvhEntryVar3).pack(anchor=W, side=LEFT)
+    Tooltip(self.radioContainer3, text="Calculate the volume for multiple dose values by giving a comma-separated list ( e.g. 10, 20, 30)",
             wraplength=self.wraplength)
 
     Checkbutton(self.ntcpContainer, text="Calculate NTCP", variable=self.dvhCheckVarIncludeNTCP).pack(anchor=W)
@@ -1050,7 +1060,6 @@ def aggregateDVHCommand(self):
     Button(self.buttonContainer, text="Custom plot placement", command=self.customAggregatedDVHCommand, width=self.button_width).pack(side=LEFT)
     b3 = Button(self.buttonContainer, text="Cancel", command=self.cancelCalculateDVHvalues, width=self.button_width)
     b3.pack(side=LEFT, anchor=W)
-
     self.window.bind('<Escape>', lambda event=None: b3.invoke())
 
 

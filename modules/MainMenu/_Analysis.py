@@ -15,12 +15,6 @@ def calculateDVHvalues(self):
     # Add here for specific organ-specific gEUD calculations to DVH output file
     nValues = {'Bladder': 1 / 8, 'Rectum': 1 / 12, 'Intestine': 1 / 4}
 
-    self.options.fixA.set(1)
-    self.options.fixB.set(1)
-    self.options.fixN.set(1)
-    self.options.fixM.set(1)
-    self.options.fixTD50.set(1)
-
     patients = set()
     for patientsInCohort in self.patients.values():
         for name in patientsInCohort.patients.keys():
@@ -36,7 +30,7 @@ def calculateDVHvalues(self):
             csv.loc[name, "Name"] = name.split("_")[0]
 
             # ECLIPSE Dose Metrics
-            if self.dvhCheckVarCalculateMeanDose.get():
+            if self.calculateMeanDose.get():
                 csv.loc[name, "ECLIPSEMeanDose [Gy]"] = patient.getMeanDoseFromEclipse()
                 csv.loc[name, "ECLIPSEMinDose [Gy]"] = patient.getMinDoseFromEclipse()
                 csv.loc[name, "ECLIPSEMaxDose [Gy]"] = patient.getMaxDoseFromEclipse()
@@ -64,6 +58,9 @@ def calculateDVHvalues(self):
             if self.dvhCheckVarVolumeAtDose.get():
                 for dose in self.dvhEntryVar2.get().split(","):
                     csv.loc[name, f"V{float(dose):g}Gy"] = patient.getVolumeAtDose(float(dose))
+            if self.dvhCheckVarVolumeAtRelDose.get():
+                for relativeDose in self.dvhEntryVar3.get().split(","):
+                    csv.loc[name, f"V{float(dose):g}%"] = patient.getVolumeAtRelativeDose(float(relativeDose))
 
             # NTCP
             if self.dvhCheckVarIncludeNTCP.get():
@@ -90,8 +87,10 @@ def calculateDVHvalues(self):
 
                 csv.loc[name, f"NTCP ({self.options.NTCPcalculation.get()})"] = patient.NTCP
 
-#    directory = "/".join(self.outputFileNameVar.get().split("/"))
-#    if not os.path.exists(self.outputFileNameVar.get()
+    directory = "/".join(self.outputFileNameVar.get().split("/")[:-1])
+    if not os.path.exists(directory):
+        self.log(f"Making directory {directory}.")
+        os.makedirs(directory)
 
     if "csv" in self.outputFileNameVar.get():
         csv.to_csv(self.outputFileNameVar.get(), index=False)
@@ -112,11 +111,23 @@ def calculateAggregatedDVH(self):
     # CALCULATION
     #############
 
-    doses = pd.DataFrame({"Dose": [0.0]})
-    doses.set_index("Dose", inplace=True)
+    doses = {}
     for cohort_, patientsInCohort in self.patients.items():
-        for name, patient in list(patientsInCohort.patients.items()):
-            doses = doses.merge(patient.dvh["Dose"], how="outer", on="Dose")
+        for name, patient in patientsInCohort.patients.items():
+            plan = patient.getPlan()
+            structure = patient.getStructure()
+            cohort = f"{structure}/{plan}"
+            if not cohort in doses:
+                doses[cohort] = pd.DataFrame({"Dose": [0.0]})
+                doses[cohort].set_index("Dose", inplace=True)
+
+            doses[cohort] = doses[cohort].merge(patient.dvh["Dose"], how="outer", on="Dose")
+            doses[cohort] = doses[cohort].sort_values("Dose").drop_duplicates().reset_index(drop=True)
+            
+            """
+            structure = cohort.split("/")[0]
+            doses[cohort].to_excel(f"Output/doses_{structure}.xlsx")
+            """
 
     if self.dvhStyleVar2.get() == "showAll": # compare tox vs no tox
         first = True
@@ -236,11 +247,13 @@ def calculateAggregatedDVH(self):
 
                 newDVH = pd.DataFrame({"Dose": patient.dvh["Dose"], f"Volume_{name}": patient.dvh["Volume"]})
                 newDVH.set_index("Dose", inplace=True)
-                cohortDVH[cohort] = cohortDVH[cohort].merge(newDVH, how="left", on="Dose").fillna(0)
-
-#            cohortDVH[cohort] = cohortDVH[cohort].interpolate(method='index', limit_direction='backward', limit = 1000).fillna(0)
 
         for cohort in cohortDVH.keys():
+            cohortDVH[cohort] = cohortDVH[cohort].interpolate(method='index', limit_direction='backward', limit = 3000).fillna(0)
+            
+            structure = cohort.split("/")[0]
+            cohortDVH[cohort].to_excel(f"Output/{structure}.xlsx")
+
             if self.dvhStyleVar1.get() == "mean":
                 cohortDVH[cohort]["Volume agg"] = cohortDVH[cohort].mean(axis=1)  # tox and notox
             else:
