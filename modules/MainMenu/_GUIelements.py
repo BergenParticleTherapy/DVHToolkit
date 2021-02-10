@@ -908,6 +908,7 @@ def calculateDVHCommand(self):
      
     self.dvhEntryVar1 = StringVar(value=0)
     self.dvhEntryVar2 = StringVar(value=0)
+    self.dvhEntryVar3 = StringVar(value=0)
     self.outputFileNameVar = StringVar(value="Output/dvhValues.xlsx")
     
     Label(self.fileContainer, text="Output file name: ").pack(side=LEFT)
@@ -1018,7 +1019,6 @@ def aggregateDVHCommand(self):
     
     colors = ["red", "orange", "darkgreen", "blue", "lightsalmon", "darkviolet",
               "gold", "darkred", "indianred", "seagreen", "magenta", "goldenrod"]
-              
     self.colorVarList = { s : StringVar(value=k) for s,k in zip(structures,colors) }
 
     self.colorContainer = [ Frame(self.styleContainer5) for k in range(len(structures)//3+1) ]

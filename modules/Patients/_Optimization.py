@@ -254,8 +254,7 @@ def doGradientOptimization(self, progress):
         fun = None
 
     res = basinhopping(fun, x0, niter=self.options.basinHoppingIterations.get(), T=self.options.basinHoppingTemperature.get(),
-                       minimizer_kwargs={'args': argTuple, 'method': 'TNC', 'bounds': bounds},
-                       take_step=mytakestep, callback=print_fun)
+                       minimizer_kwargs={'args': argTuple, 'method': 'TNC', 'bounds': bounds}, take_step=mytakestep, callback=print_fun)
 
     self.bestParameters = res.x
 

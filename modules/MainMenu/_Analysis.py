@@ -242,11 +242,12 @@ def calculateAggregatedDVH(self):
                 cohort = f"{structure}/{plan}"
 
                 if cohort not in cohortDVH:
-                    cohortDVH[cohort] = pd.DataFrame({"Dose": doses["Dose"]})
+                    cohortDVH[cohort] = pd.DataFrame({"Dose": doses[cohort]["Dose"]})
                     cohortDVH[cohort].set_index("Dose", inplace=True)
 
                 newDVH = pd.DataFrame({"Dose": patient.dvh["Dose"], f"Volume_{name}": patient.dvh["Volume"]})
                 newDVH.set_index("Dose", inplace=True)
+                cohortDVH[cohort] = cohortDVH[cohort].merge(newDVH, how="left", on="Dose")
 
         for cohort in cohortDVH.keys():
             cohortDVH[cohort] = cohortDVH[cohort].interpolate(method='index', limit_direction='backward', limit = 3000).fillna(0)
@@ -390,8 +391,6 @@ def calculateAggregatedDVH(self):
 
             ls = style[styleIdx[plan]]
             c = self.colorVarList[structure].get()
-
-            # ls = patient.getTox() >= self.options.toxLimit.get() and "--" or "-"
 
             if ":" in c:
                 alpha1 = float(c.split(":")[-1])
