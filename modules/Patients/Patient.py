@@ -151,8 +151,8 @@ class Patient:
             return row["Avg. Dose"] ** ninv * row["Diff. Volume"]
 
         if not self.checkGEUDsplines(options):
-            #nList = np.arange(options.nFrom.get(), options.nTo.get()+0.04, 0.02)
-            nList = np.arange(0.05, 2.0, 0.05)
+            nList = np.arange(min(0.05, options.nFrom.get() * 0.8), max(options.nTo.get() * 1.2, 2), 0.02)
+            # nList = np.arange(0.05, 2.0, 0.05)
             GEUDlist = []
             for n in nList:
                 ninv = 1 / n

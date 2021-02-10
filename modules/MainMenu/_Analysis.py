@@ -378,6 +378,8 @@ def calculateAggregatedDVH(self):
             ls = style[styleIdx[plan]]
             c = self.colorVarList[structure].get()
 
+            # ls = patient.getTox() >= self.options.toxLimit.get() and "--" or "-"
+
             if ":" in c:
                 alpha1 = float(c.split(":")[-1])
                 alpha2 = min(1, alpha1+0.6)
