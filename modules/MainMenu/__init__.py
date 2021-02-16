@@ -75,6 +75,7 @@ class MainMenu(Frame):
         self.changeNamingContainer = Frame(self.middleMiddleContainer)
 
         self.CSVStyleContainer = Frame(self.middleMiddleContainer)
+        self.autoDVHHeaderContainer = Frame(self.middleMiddleContainer)
         self.customDVHHeaderContainer = Frame(self.middleMiddleContainer)
         self.doseUnitContainer = Frame(self.middleMiddleContainer)
         self.skipRowsContainer = Frame(self.middleMiddleContainer)
@@ -129,13 +130,28 @@ class MainMenu(Frame):
         Tooltip(self.CSVStyleContainer, text="CSV style: Comma and Semicolon, or Period and Comma for decimal and column separation.",
                 wraplength=self.wraplength)
 
+        self.autoDVHHeaderContainer.pack(anchor=W)
+        Label(self.autoDVHHeaderContainer, text="Autodetect headers: ").pack(side=LEFT, anchor=W)
+        self.autoDVHHeaderRadiobuttons = list()
+        for text, mode in [["No", 0], ["Yes", 1]]:
+            self.autoDVHHeaderRadiobuttons.append(Radiobutton(self.autoDVHHeaderContainer, text=text, variable=self.options.autodetectDVHHeader,
+                                                              command=self.autodetectDVHHeaderCommand, value=mode))
+            self.autoDVHHeaderRadiobuttons[-1].pack(side=LEFT, anchor=W)
+
+        Tooltip(self.autoDVHHeaderContainer, text="Try to autodetect headers in CSV / ECLIPSE / RayStation DVH file. If this fails, use,"
+                "input options below.", wraplength=self.wraplength)
+
         self.customDVHHeaderContainer.pack(anchor=W)
-        Label(self.customDVHHeaderContainer, text="Columns in DVH files: ").pack(side=LEFT, anchor=W)
+        self.customDVHHeaderLabel = Label(self.customDVHHeaderContainer, text="Columns in DVH files: ")
+        self.customDVHHeaderLabel.pack(side=LEFT, anchor=W)
         self.customDVHHeaderEntry = Entry(self.customDVHHeaderContainer, textvariable=self.options.customDVHHeader, width=50)
         self.customDVHHeaderEntry.pack(side=LEFT, anchor=W)
         Tooltip(self.customDVHHeaderContainer,
                 text="Define headers as a comma-separated list, indicating the wanted Dose and Volume columns without whitespace. Example: "
                 "\"Volume,dummy,dummy,Dose\" or \"Dose,Volume\".", wraplength=self.wraplength)
+
+        if self.options.autodetectDVHHeader.get():
+            self.customDVHHeaderEntry['state'] = 'disabled'
 
         self.doseUnitContainer.pack(anchor=W)
         Label(self.doseUnitContainer, text="Dose unit: ").pack(side=LEFT, anchor=W)
@@ -224,7 +240,7 @@ class MainMenu(Frame):
     from ._GUIelements import changeNamingQuitCommand, changeNamingQuitAndSaveCommand, drawPlanAndStructureNames
     from ._GUIelements import customAggregatedDVHCommand, cancelCustomAggregateDVHCommand, matchCustomAggregateDVHCommand
     from ._GUIelements import saveCustomAggregateDVHCommand, packCustomAggregateDVHCommand, calculateNTCPWindow, calculateNTCPWindowCancel, switchToNTCPcc
-    from ._GUIelements import calculateBootstrapWindow, calculateBootstrapWindowCancel
+    from ._GUIelements import calculateBootstrapWindow, calculateBootstrapWindowCancel, autodetectDVHHeaderCommand
 
     from ._Analysis import calculateDVHvalues, calculateAggregatedDVH
     from ._NTCPbootstrap import calculateLKBuncert

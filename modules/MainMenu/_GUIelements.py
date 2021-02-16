@@ -902,6 +902,7 @@ def calculateDVHCommand(self):
 
     self.dvhCheckVarDoseAtVolume = IntVar(value=1)
     self.dvhCheckVarVolumeAtDose = IntVar(value=1)
+    self.dvhCheckVarVolumeAtRelDose = IntVar(value=1)
     self.dvhCheckVarIncludeNTCP = IntVar(value=1)
     self.dvhCheckVarIncludeGEUD = IntVar(value=1)
     self.dvhCheckVarCalculateMeanDose = IntVar(value=1)
@@ -958,8 +959,7 @@ def calculateDVHCommand(self):
     Label(self.calculateGEUDContainer, text="n = ").pack(anchor=W, side=LEFT)
     Entry(self.calculateGEUDContainer, textvariable=self.options.nFrom, width=10).pack(anchor=W, side=LEFT)
 
-    Tooltip(self.calculateGEUDContainer, text="Calculate the gEUD based on the pre-set fixed N value. If no value is set, a set of default values "
-            " based on structure names (bladder=1/8, rectum=1/12, intestine=1/4). (Define more structures in modules/MainMenu/_Analysis.py)",
+    Tooltip(self.calculateGEUDContainer, text="Calculate the gEUD based on the pre-set fixed N value. Set n=1 for the mean dose.",
             wraplength=self.wraplength)
 
     b = Button(self.buttonContainer, text="Calculate", command=self.calculateDVHvalues, width=self.button_width)
@@ -1343,6 +1343,13 @@ def changeNamingQuitAndSaveCommand(self):
                         structure = sub(d['from'].get(), d['to'].get(), structure)
                 patient.setStructure(structure)
     self.window.destroy()
+
+
+def autodetectDVHHeaderCommand(self):
+    if self.options.autodetectDVHHeader.get() == 0:
+        self.customDVHHeaderEntry['state'] = 'normal'
+    else:
+        self.customDVHHeaderEntry['state'] = 'disabled'
 
 
 def drawPlanAndStructureNames(self):

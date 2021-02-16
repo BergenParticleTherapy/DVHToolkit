@@ -4,7 +4,7 @@ from tkinter import *
 
 class Options():
     def __init__(self):
-        self.PROGRAM_VERSION = 1.62
+        self.PROGRAM_VERSION = 1.64
         self.Gy = 1
         self.dGy = 0.1
         self.cGy = 0.01
@@ -34,6 +34,7 @@ class Options():
         self.toxLimit = IntVar(value=2)
         self.matrixSize = IntVar(value=50)
         self.loadToxFromFilename = IntVar(value=1)
+        self.autodetectDVHHeader = IntVar(value=1)
 
         self.fixN = IntVar(value=0)
         self.nFrom = DoubleVar(value=0.02)

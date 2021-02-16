@@ -133,6 +133,8 @@ class Patients:
 
         progress['maximum'] = self.findNPatients()
 
+        printedLogOutput = False
+
         for root, d, f, in os.walk(self.dataFolder):
             for filename in f:
                 if not ".txt" in filename[-4:]:
@@ -157,6 +159,7 @@ class Patients:
 
                 emptyStructure = False
                 dontAppendLength = False
+                doseHeaderLine = None
 
                 with open(self.getFilePath(filename), "r") as textin:
                     for line in textin:
@@ -203,6 +206,9 @@ class Patients:
                                 structureVolume.append(float(line.split(": ")[-1]))
 
                         if "Dose [" in line and "Volume [" in line:
+                            if not doseHeaderLine:
+                                doseHeaderLine = line
+
                             if not emptyStructure:
                                 structureStarts.append(idx + 1)
                                 planStarts.append(idx + 1)
@@ -225,15 +231,35 @@ class Patients:
 
                 for structure, plan in zip(structures, plans):
                     if match(self.options.structureToUse.get(), structure[0]) and match(self.options.planToUse.get(), plan[0]):
-                        try:
-                            headers = self.options.customDVHHeader.get().split(",")
-                        except:
-                            headers = ["Dose", "Relative dose", "Volume"]
+                        if self.options.autodetectDVHHeader.get():
+                            header_dict = {"Dose [Gy]": "Dose", "Ratio of Total Structure Volume [%]": "Volume", "Relative dose [%]": "Relative dose"}
+                            possible_headers = list(header_dict.keys())
+
+                            header_index = list()
+                            for header in possible_headers:
+                                try:
+                                    header_index.append(doseHeaderLine.index(header))
+                                except:
+                                    pass
+
+                            header_index = [header_index.index(k) for k in sorted(header_index)]
+                            identified_headers = np.array(possible_headers)[header_index]
+                            headers = [header_dict[k] for k in np.array(possible_headers)[header_index] if k in header_dict]
+                            if not printedLogOutput:
+                                printedLogOutput = True
+                                log.append(f"Identified the following ECLIPSE DVH header structure: {headers}")
+
+                        else:
+                            try:
+                                headers = self.options.customDVHHeader.get().split(",")
+                            except:
+                                print(f"Could not identify structure: {doseHeaderLine}, please input custom DVH header.")
+                                headers = ["Dose", "Relative dose", "Volume"]
 
                         dvh = pd.read_csv(self.getFilePath(filename), header=None, names=headers,
                                           usecols=["Dose", "Volume"], decimal=".", sep="\s+",
                                           skiprows=structure[1], nrows=structure[2], engine="python")
-                    
+
                         if np.sum(dvh.isnull().values):
                             headers = ["Dose", "Volume"]
                             dvh = pd.read_csv(self.getFilePath(filename), header=None, names=headers,
@@ -322,6 +348,7 @@ class Patients:
                 planStarts = []
                 planLength = []
                 lastLineEmpty = False
+                firstDoseLine = None
 
                 progress.step(1)
                 progress.update_idletasks()
@@ -342,6 +369,9 @@ class Patients:
                             structureStarts.append(idx + 1)
                             planStarts.append(idx + 1)
 
+                        if not "#" in line and not firstDoseLine:
+                            firstDoseLine = line
+
                         idx += 1
 
                 # To get to end of file
@@ -353,9 +383,21 @@ class Patients:
 
                 for structure in structures:
                     if match(self.options.structureToUse.get(), structure[0]):
-                        headers = self.options.customDVHHeader.get().split(",")
 
-                        headers = ["Dose", "Volume"]
+                        if self.options.autodetectDVHHeader.get():
+                            firstDoseLine = [float(k) for k in firstDoseLine.split("\t")]
+                            if len(firstDoseLine) == 2:
+                                if firstDoseLine[0] == 0:
+                                    headers = ["Dose", "Volume"]
+                                else:
+                                    headers = ["Volume", "Dose"]
+                            else:
+                                print(f"Could not identify structure: {firstDoseLine}, please input custom DVH header.")
+                                headers = self.options.customDVHHeader.get().split(",")
+
+                        else:
+                            headers = self.options.customDVHHeader.get().split(",")
+
                         dvh = pd.read_csv(self.getFilePath(filename), header=None, names=headers,
                                           usecols=["Dose", "Volume"], decimal=".", sep="\s+",
                                           skiprows=structure[1], nrows=structure[2], engine="python")
@@ -389,7 +431,6 @@ class Patients:
                         patientName = filename[:-4]
                         patient.setCohort(self.dataFolder.split("/")[-1])
                         patient.setDataFolder(self.dataFolder)
-                        patient.dvh["Dose"] = patient.dvh["Dose"] * doseUnit
                         patient.setID(f"{patientName}_{patient.getPlan()}_{patient.getStructure()}")
 
                         # Add object to dictionary
@@ -420,6 +461,8 @@ class Patients:
                     nFiles += 1
         progress['maximum'] = nFiles
 
+        printedLogOutput = False
+
         for root, d, f, in os.walk(self.dataFolder):  # GENERALIZE THIS IF MORE 'simple' FILES ARE TO BE USED ...
             for filename in f:
                 progress.step(1)
@@ -445,6 +488,29 @@ class Patients:
                 elif self.options.CSVStyle.get() == "commaSemicolon":
                     dec = ","
                     sep = ";"
+
+                if self.options.autodetectDVHHeader.get():
+                    with open(self.getFilePath(filename)) as autodetectFile:
+                        for _ in range(self.options.skipRows.get()):
+                            autodetectFile.readline()
+                        line = autodetectFile.readline()
+
+                        firstDoseLine = [float(k) for k in line.split(sep)]
+                        if len(firstDoseLine) == 2:
+                            if firstDoseLine[0] == 0:
+                                headers = ["Dose", "Volume"]
+                            else:
+                                headers = ["Volume", "Dose"]
+
+                            if not printedLogOutput:
+                                printedLogOutput = True
+                                log.append(f"Identified the following DVH header structure: {headers}")
+                        else:
+                            print(f"Could not identify structure: {firstDoseLine}, please input custom DVH header.")
+                            headers = self.options.customDVHHeader.get().split(",")
+
+                else:
+                    headers = self.options.customDVHHeader.get().split(",")
 
                 headers = self.options.customDVHHeader.get().split(",")
                 dvh = pd.read_csv(self.getFilePath(filename), decimal=dec, sep=sep, names=headers,

@@ -41,15 +41,18 @@ def calculateDVHvalues(self):
                 if not isinstance(patient.GEUDlist, list):
                     patient.createDifferentialDVH()
                     patient.createGEUDspline(self.options)
-                if self.options.fixN.get():
-                    csv.loc[name, "Fixed n-value"] = self.options.nFrom.get()
-                    csv.loc[name, "gEUD [Gy]"] = patient.getGEUD(self.options.nFrom.get())
+
+                csv.loc[name, "Fixed n-value"] = self.options.nFrom.get()
+                csv.loc[name, "gEUD [Gy]"] = patient.getGEUD(self.options.nFrom.get())
+
+                """
                 elif patient.getStructure().capitalize() in nValues:
                     csv.loc[name, "Structure n-value"] = nValues[patient.getStructure()]
                     csv.loc[name, "gEUD [Gy]"] = patient.getGEUD(nValues[patient.getStructure()])
                 else:
                     self.log(f"No seriality parameter found or set for patient/structure {name}/{patient.getStructure()}.")
                     self.log("(Other structures are still saved).")
+                """
 
             # DVH Dose Metrics
             if self.dvhCheckVarDoseAtVolume.get():

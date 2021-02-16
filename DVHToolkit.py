@@ -97,6 +97,8 @@
 # Added support for variable ECLIPSE column orders
 # Bugfix in interpolation when the dose mesh varies inside cohort
 
+# Changelog version 1.64
+# Automatic detection of column ordering in all file types
 
 import sys
 from tkinter import *
