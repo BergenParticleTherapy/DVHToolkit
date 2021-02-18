@@ -370,7 +370,7 @@ class Patients:
                             planStarts.append(idx + 1)
 
                         if not "#" in line and not firstDoseLine:
-                            firstDoseLine = line
+                            firstDoseLine = [float(k) for k in line.split("\t")]
 
                         idx += 1
 
@@ -385,7 +385,6 @@ class Patients:
                     if match(self.options.structureToUse.get(), structure[0]):
 
                         if self.options.autodetectDVHHeader.get():
-                            firstDoseLine = [float(k) for k in firstDoseLine.split("\t")]
                             if len(firstDoseLine) == 2:
                                 if firstDoseLine[0] == 0:
                                     headers = ["Dose", "Volume"]

@@ -900,12 +900,12 @@ def calculateDVHCommand(self):
     self.buttonContainer = Frame(self.window)
     self.buttonContainer.pack(anchor=N, fill=X, expand=1)        
 
-    self.dvhCheckVarDoseAtVolume = IntVar(value=1)
-    self.dvhCheckVarVolumeAtDose = IntVar(value=1)
-    self.dvhCheckVarVolumeAtRelDose = IntVar(value=1)
-    self.dvhCheckVarIncludeNTCP = IntVar(value=1)
-    self.dvhCheckVarIncludeGEUD = IntVar(value=1)
-    self.dvhCheckVarCalculateMeanDose = IntVar(value=1)
+    self.dvhCheckVarDoseAtVolume = IntVar(value=0)
+    self.dvhCheckVarVolumeAtDose = IntVar(value=0)
+    self.dvhCheckVarVolumeAtRelDose = IntVar(value=0)
+    self.dvhCheckVarIncludeNTCP = IntVar(value=0)
+    self.dvhCheckVarIncludeGEUD = IntVar(value=0)
+    self.dvhCheckVarCalculateMeanDose = IntVar(value=0)
      
     self.dvhEntryVar1 = StringVar(value=0)
     self.dvhEntryVar2 = StringVar(value=0)
@@ -957,10 +957,11 @@ def calculateDVHCommand(self):
     Checkbutton(self.calculateMeanDoseContainer, text="Include dose metrics from ECLIPSE ", variable=self.dvhCheckVarCalculateMeanDose).pack(anchor=W)
     Checkbutton(self.calculateGEUDContainer, text="Calculate gEUD ", variable=self.dvhCheckVarIncludeGEUD).pack(anchor=W, side=LEFT)
     Label(self.calculateGEUDContainer, text="n = ").pack(anchor=W, side=LEFT)
-    Entry(self.calculateGEUDContainer, textvariable=self.options.nFrom, width=10).pack(anchor=W, side=LEFT)
+    Entry(self.calculateGEUDContainer, textvariable=self.options.nSet, width=10).pack(anchor=W, side=LEFT)
 
     Tooltip(self.calculateGEUDContainer, text="Calculate the gEUD based on the pre-set fixed N value. Set n=1 for the mean dose.",
             wraplength=self.wraplength)
+
 
     b = Button(self.buttonContainer, text="Calculate", command=self.calculateDVHvalues, width=self.button_width)
     b.pack(side=LEFT, anchor=N)

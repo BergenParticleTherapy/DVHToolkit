@@ -129,3 +129,5 @@ dmypy.json
 .pyre/
 *.xlsx
 *.pdf
+config.cfg
+config.cfg

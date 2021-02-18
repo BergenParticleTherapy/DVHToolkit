@@ -39,6 +39,7 @@ class Options():
         self.fixN = IntVar(value=0)
         self.nFrom = DoubleVar(value=0.02)
         self.nTo = DoubleVar(value=1)
+        self.nSet = DoubleVar(value=1)
 
         self.fixM = IntVar(value=0)
         self.mFrom = DoubleVar(value=0.03)
@@ -102,7 +103,7 @@ class Options():
                      "dvhPlotLegendMarker": self.dvhPlotLegendMarker, "dvhPlotLineStyleGrouping": self.dvhPlotLineStyleGrouping,
                      "dvhPlotSeparatePlots": self.dvhPlotSeparatePlots, "dvhPlotsSaveFigs": self.dvhPlotsSaveFigs,
                      "dvhPlotLegendSize": self.dvhPlotLegendSize, "makeDifferentialCI": self.makeDifferentialCI,
-                     "useNTCPcc": self.useNTCPcc}
+                     "useNTCPcc": self.useNTCPcc, "nSet": self.nSet}
 
     def loadOptions(self):
         read = False

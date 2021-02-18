@@ -42,8 +42,8 @@ def calculateDVHvalues(self):
                     patient.createDifferentialDVH()
                     patient.createGEUDspline(self.options)
 
-                csv.loc[name, "Fixed n-value"] = self.options.nFrom.get()
-                csv.loc[name, "gEUD [Gy]"] = patient.getGEUD(self.options.nFrom.get())
+                csv.loc[name, "Fixed n-value"] = self.options.nSet.get()
+                csv.loc[name, "gEUD [Gy]"] = patient.getGEUD(self.options.nSet.get())
 
                 """
                 elif patient.getStructure().capitalize() in nValues:
