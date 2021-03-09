@@ -94,11 +94,14 @@
 
 # Changelog version 1.63
 # Codebase merge from two different development environment
-# Added support for variable ECLIPSE column orders
+# Added support for variable ECLIPSE column ordebrs
 # Bugfix in interpolation when the dose mesh varies inside cohort
 
 # Changelog version 1.64
 # Automatic detection of column ordering in all file types
+
+# Changelog version 1.65
+# Bugfix in column ordering (only ECLIPSE for now), missing possible headers
 
 import sys
 from tkinter import *

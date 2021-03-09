@@ -232,7 +232,9 @@ class Patients:
                 for structure, plan in zip(structures, plans):
                     if match(self.options.structureToUse.get(), structure[0]) and match(self.options.planToUse.get(), plan[0]):
                         if self.options.autodetectDVHHeader.get():
-                            header_dict = {"Dose [Gy]": "Dose", "Ratio of Total Structure Volume [%]": "Volume", "Relative dose [%]": "Relative dose"}
+                            header_dict = {"Dose [Gy]": "Dose", "Dose [cGy]": "Dose", "Ratio of Total Structure Volume [%]": "Volume", 
+                            "Structure Volume [cmÂ³]": "Volume", "Relative dose [%]": "Relative dose"}
+                            
                             possible_headers = list(header_dict.keys())
 
                             header_index = list()
@@ -240,14 +242,15 @@ class Patients:
                                 try:
                                     header_index.append(doseHeaderLine.index(header))
                                 except:
+                                    header_index.append(99)
                                     pass
 
-                            header_index = [header_index.index(k) for k in sorted(header_index)]
+                            header_index = [header_index.index(k) for k in sorted(header_index) if k != 99]
                             identified_headers = np.array(possible_headers)[header_index]
                             headers = [header_dict[k] for k in np.array(possible_headers)[header_index] if k in header_dict]
                             if not printedLogOutput:
-                                printedLogOutput = True
-                                log.append(f"Identified the following ECLIPSE DVH header structure: {headers}")
+                                #printedLogOutput = True
+                                log.append(f"Identified the following ECLIPSE DVH header structure for file {filename}: {headers}")
 
                         else:
                             try:
