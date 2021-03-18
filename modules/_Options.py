@@ -4,7 +4,7 @@ from tkinter import *
 
 class Options():
     def __init__(self):
-        self.PROGRAM_VERSION = 1.65
+        self.PROGRAM_VERSION = 1.66
         self.Gy = 1
         self.dGy = 0.1
         self.cGy = 0.01
@@ -74,6 +74,9 @@ class Options():
         self.gammaFrom = DoubleVar(value=1.37)
         self.gammaTo = DoubleVar(value=2)
         self.NTCPGammaSize = DoubleVar(value=1.37)
+        self.NTCPBoundWeight = DoubleVar(value=1)
+        self.NTCPBoundLower = DoubleVar(value=0)
+        self.NTCPBoundUpper = DoubleVar(value=0)
 
         self.dvhPlotUseToxAsColor = IntVar(value=0)
         self.dvhPlotLegendMarker = StringVar(value="structureName")  # ["structureName", "folderName", "planName"]
@@ -103,7 +106,8 @@ class Options():
                      "dvhPlotLegendMarker": self.dvhPlotLegendMarker, "dvhPlotLineStyleGrouping": self.dvhPlotLineStyleGrouping,
                      "dvhPlotSeparatePlots": self.dvhPlotSeparatePlots, "dvhPlotsSaveFigs": self.dvhPlotsSaveFigs,
                      "dvhPlotLegendSize": self.dvhPlotLegendSize, "makeDifferentialCI": self.makeDifferentialCI,
-                     "useNTCPcc": self.useNTCPcc, "nSet": self.nSet}
+                     "useNTCPcc": self.useNTCPcc, "nSet": self.nSet, "NTCPBoundWeight": self.NTCPBoundWeight,
+                     "NTCPBoundUpper": self.NTCPBoundUpper, "NTCPBoundLower": self.NTCPBoundLower}
 
     def loadOptions(self):
         read = False
