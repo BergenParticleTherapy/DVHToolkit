@@ -104,6 +104,11 @@ def drawSigmoid(self, log, style1, style2):
     plt.plot(x, y, "-", color=style1, zorder=15, linewidth=3, label=f"{self.cohort}")
     plt.plot(px, py, "o", color=style2, zorder=0)
 
+    if self.options.NTCPBoundWeight.get():
+        weight = self.options.NTCPBoundWeight.get()
+        plt.plot(self.options.NTCPBoundLower.get(), -0.05, "^", color="k", label=f"Lower bound (w={weight})")
+        plt.plot(self.options.NTCPBoundUpper.get(), 1.05, "v", color="k", label=f"Upper bound (w={weight})")
+
     if self.options.confidenceIntervalShowModels.get():
         for each in yExtra:
             plt.plot(x, each, '-', color="black", linewidth=0.25, zorder=0)

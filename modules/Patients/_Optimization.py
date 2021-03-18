@@ -150,6 +150,16 @@ def doGradientOptimization(self, progress):
             if time and not tox:
                 NTCP *= (1 - exp(-(x[2] * time)**x[3]))
             error += (tox - NTCP) ** 2
+
+        # Lower and Upper bounds to optimization ("all cases below X Gy should be negative")
+        if self.options.NTCPBoundWeight.get():
+            NTCP = 1 - 1 / (1 + exp(x[0] + x[1] * self.options.NTCPBoundLower.get()))
+            error += len(args) * self.options.NTCPBoundWeight.get() * (NTCP ** 2)
+            
+        if self.options.NTCPBoundWeight.get():
+            NTCP = 1 - 1 / (1 + exp(x[0] + x[1] * self.options.NTCPBoundHigher.get()))
+            error += len(args) * self.options.NTCPBoundWeight.get() * (1 - NTCP)**2
+
         return error
 
     def funLKBLS(x, *args):
@@ -159,6 +169,16 @@ def doGradientOptimization(self, progress):
             if time and not tox:
                 NTCP *= (1 - exp(-(x[3] * time)**x[4]))
             error += (tox - NTCP) ** 2
+
+        # Lower and Upper bounds to optimization ("all cases below X Gy should be negative")
+        if self.options.NTCPBoundWeight.get():
+            NTCP = HPM((self.options.NTCPBoundLower.get() - x[2])/(x[1]*x[2]))
+            error += len(args) * self.options.NTCPBoundWeight.get() * (NTCP ** 2)
+            
+        if self.options.NTCPBoundWeight.get():
+            NTCP = HPM((self.options.NTCPBoundUpper.get() - x[2])/(x[1]*x[2]))
+            error += len(args) * self.options.NTCPBoundWeight.get() * (1 - NTCP)**2
+
         return error
 
     def funLogitLLH(x, *args):
@@ -173,6 +193,16 @@ def doGradientOptimization(self, progress):
             else:
                 error -= log(max(1 - NTCP, 1e-323))
 
+        # Lower and Upper bounds to optimization ("all cases below X Gy should be negative")
+        if self.options.NTCPBoundWeight.get():
+            NTCP = 1 - 1 / (1 + exp(x[0] + x[1] * self.options.NTCPBoundLower.get()))
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(1 - NTCP, 1e-323))
+            
+        if self.options.NTCPBoundWeight.get():
+            NTCP = 1 - 1 / (1 + exp(x[0] + x[1] * self.options.NTCPBoundHigher.get()))
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(NTCP, 1e-323))
+
+
         return error
 
     def funLKBLLH(x, *args):
@@ -186,6 +216,15 @@ def doGradientOptimization(self, progress):
                 error -= log(max(NTCP, 1e-323))
             else:
                 error -= log(max(1 - NTCP, 1e-323))
+
+        # Lower and Upper bounds to optimization ("all cases below X Gy should be negative")
+        if self.options.NTCPBoundWeight.get():
+            NTCP = HPM((self.options.NTCPBoundLower.get() - x[2])/(x[1]*x[2]))
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(1 - NTCP, 1e-323))
+            
+        if self.options.NTCPBoundWeight.get():
+            NTCP = HPM((self.options.NTCPBoundUpper.get() - x[2])/(x[1]*x[2]))
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(NTCP, 1e-323))
 
         return error
 
