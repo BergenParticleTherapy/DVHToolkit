@@ -103,6 +103,10 @@
 # Changelog version 1.65
 # Bugfix in column ordering (only ECLIPSE for now), missing possible headers
 
+# Changelog version 1.66
+# Added NTCP constaints (by adding artificial non-tox + tox patients at set limits)
+# TODO: Bug in autodetect Simple
+
 import sys
 from tkinter import *
 from modules import MainMenu
