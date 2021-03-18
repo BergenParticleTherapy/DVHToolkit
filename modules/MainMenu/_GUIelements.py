@@ -145,7 +145,7 @@ def addPatientCohort(self, cohortName, structureName, planName, nPatients, nPati
         self.buttonLKBuncert['state'] = 'normal'
     else:
         self.buttonCalculateNTCP['state'] = 'disabled'
-        self.buttonLKBuncert['state'] = 'disabled'
+    #    self.buttonLKBuncert['state'] = 'disabled'
         self.buttonCalculateAUROC['state'] = 'disabled'
         self.buttonCalculateDVH['state'] = 'normal'
         self.buttonAggregateDVH['state'] = 'normal'
@@ -459,6 +459,9 @@ def calculateNTCPWindow(self, draw=True):
     self.basinHoppingsMsizeContainer = Frame(self.NTCPContainer)
     self.basinHoppingsTD50sizeContainer = Frame(self.NTCPContainer)
     self.basinHoppingsJumpLenghtsContainer = Frame(self.NTCPContainer)
+    self.NTCPBoundWeightContainer = Frame(self.NTCPContainer)
+    self.NTCPBoundLowerContainer = Frame(self.NTCPContainer)
+    self.NTCPBoundUpperContainer = Frame(self.NTCPContainer)
     self.timeDependencyContainer = Frame(self.NTCPContainer)
     self.timeDependencyLambdaContainer = Frame(self.NTCPContainer)
     self.timeDependencyGammaContainer = Frame(self.NTCPContainer)
@@ -567,6 +570,21 @@ def calculateNTCPWindow(self, draw=True):
 
     Tooltip(self.basinHoppingsJumpLenghtsContainer, 
             text="For each \"basin hopping\", each parameter is perturbed as a random number within ± these values.", wraplength=self.wraplength)
+
+    self.NTCPBoundWeightContainer.pack(anchor=W)
+    Label(self.NTCPBoundWeightContainer, text="Boundary conditions: Weight ").pack(side=LEFT, anchor=W)
+    Entry(self.NTCPBoundWeightContainer, textvariable=self.options.NTCPBoundWeight, width=5).pack(side=LEFT, anchor=W)
+    Tooltip(self.NTCPBoundWeightContainer,
+            text="Add artificial data points at Lower (no tox) and Upper (tox) positions to avoid too broad distributions."
+            " The weight is the number of points to put at the Lower / Upper positions: NPoints = Dataset size * weight", wraplength=self.wraplength)
+
+    self.NTCPBoundLowerContainer.pack(anchor=W)
+    Label(self.NTCPBoundLowerContainer, text="Boundary conditions: Lower edge [Gy] ").pack(side=LEFT, anchor=W)
+    Entry(self.NTCPBoundLowerContainer, textvariable=self.options.NTCPBoundLower, width=5).pack(side=LEFT, anchor=W)
+
+    self.NTCPBoundUpperContainer.pack(anchor=W)
+    Label(self.NTCPBoundUpperContainer, text="Boundary conditions: Upper edge [Gy] ").pack(side=LEFT, anchor=W)
+    Entry(self.NTCPBoundUpperContainer, textvariable=self.options.NTCPBoundUpper, width=5).pack(side=LEFT, anchor=W)
 
     self.timeDependencyContainer.pack(anchor=W)
     Checkbutton(self.timeDependencyContainer, text="Use time dependent NTCP", variable=self.options.NTCPTimeDependent).pack(anchor=W, side=LEFT)
