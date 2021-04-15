@@ -177,7 +177,48 @@ def chooseStructureCommand(self,cohortName):
     self.log("\n".join(res))
 
 
+def calculateGEUDWindow(self):
+    self.window = Toplevel(self)
+    self.window.title("Calculate gEUD")
+    self.window.focus()
+    self.styleContainer = Frame(self.window)
+    self.styleContainer.pack(anchor=W)
+    self.styleContainer2 = Frame(self.window)
+    self.styleContainer2.pack(anchor=W)
+    self.styleContainer3 = Frame(self.window)
+    self.styleContainer3.pack(anchor=W)
+    self.styleContainer4 = Frame(self.window)
+    self.styleContainer4.pack(anchor=W)
+
+
+    self.buttonContainer = Frame(self.window)
+    self.buttonContainer.pack(anchor=W, fill=X, expand=1)
+
+    Label(self.styleContainer, text="Lowest n value: ").pack(side=LEFT)
+    Entry(self.styleContainer, textvariable=self.options.nFrom, width=5).pack(side=LEFT, anchor=W)
+
+    Label(self.styleContainer2, text="Highest n value: ").pack(side=LEFT)
+    Entry(self.styleContainer2, textvariable=self.options.nTo, width=5).pack(side=LEFT, anchor=W)
+
+    Label(self.styleContainer3, text="Calculation grid size: ").pack(side=LEFT)
+    Entry(self.styleContainer3, textvariable=self.options.nGrid, width=5).pack(side=LEFT, anchor=W)
+
+    for text, mode in [["Linear n", True], ["Logarithmic n", False]]:
+        Radiobutton(self.styleContainer4, text=text, value=mode, variable=self.options.nIsLinear).pack(side=LEFT, anchor=W)
+    
+    b1 = Button(self.buttonContainer, text="(Re)calculate gEUD look-up-table", command=self.calculateGEUDCommand, width=self.button_width)
+    b1.pack(side=LEFT, anchor=W)
+
+    b2 = Button(self.buttonContainer, text="Cancel", command=self.cancelCalculateGEUDCommand, width=self.button_width)
+    b2.pack(side=LEFT, anchor=W)
+
+    self.window.bind('<Return>', lambda event=None: b1.invoke())
+    self.window.bind('<Escape>', lambda event=None: b2.invoke())
+
+
 def calculateGEUDCommand(self):
+    self.window.destroy()
+
     for k,v in list(self.patients.items()):
         self.log(f"Calculating gEUD values for cohort {k}...")
         v.createGEUDs(self.progress)
@@ -188,6 +229,8 @@ def calculateGEUDCommand(self):
     self.buttonShowGEUDvsN['state'] = 'normal'
     self.buttonCalculateDVH['state'] = 'normal'
 
+def cancelCalculateGEUDCommand(self):
+    self.window.destroy()
 
 def toxLimitChange(self):
     if self.cohortList:
@@ -500,7 +543,7 @@ def calculateNTCPWindow(self, draw=True):
         self.paramNEntry[-1].pack(side=LEFT, anchor=W)
     Tooltip(self.basinHoppingsNsizeContainer, text="The boundaries of the n/a parameter. "
             "It will affect new gEUD spline calculations. If it is fixed, the lower value is applied", wraplength=self.wraplength)
-    
+
     self.basinHoppingsMsizeContainer.pack(anchor=W)
     self.paramMLabel = Label(self.basinHoppingsMsizeContainer, text="LKB m parameter: ")
     self.paramMLabel.pack(side=LEFT, anchor=W)
@@ -768,17 +811,22 @@ def NTCPcalculationCommand(self):
             self.buttonCalculateDVH['state'] = 'normal'
             self.log("Found gEUD spline files for all patients.")
             self.buttonCalculateGEUD['state'] = 'disabled'
+            self.buttonLKBuncert['state'] = 'normal'
+
         
         elif not hasGEUDs and self.options.NTCPcalculation.get() == "Logit":
             self.buttonCalculateNTCP['state'] = 'normal'
             self.buttonCalculateAUROC['state'] = 'normal'
             self.buttonCalculateDVH['state'] = 'normal'
             self.buttonCalculateGEUD['state'] = 'normal'
+            self.buttonLKBuncert['state'] = 'normal'
+
         else:
             self.buttonCalculateNTCP['state'] = 'disabled'
             self.buttonCalculateAUROC['state'] = 'disabled'
             self.buttonCalculateDVH['state'] = 'normal'
             self.buttonCalculateGEUD['state'] = 'normal'
+            # self.buttonLKBuncert['state'] = 'normal'
 
 
 def calculateBootstrapWindow(self):
@@ -799,6 +847,7 @@ def calculateBootstrapWindow(self):
     self.makeDifferentialCIContainer = Frame(self.bootstrapContainer)
     self.confidenceIntervalLikelihoodLimitContainer = Frame(self.bootstrapContainer)
     self.confidenceIntervalShowModelsContainer = Frame(self.bootstrapContainer)
+    self.nIsLogOrLinContainer = Frame(self.bootstrapContainer)
 
     Label(self.bootstrapContainer, text="BOOTSTRAP OPTIONS", font=("Helvetica", 12)).pack(pady=(15, 0))
     Frame(self.bootstrapContainer, bg="grey", relief=SUNKEN).pack(fill=X, expand=1, anchor=W)
@@ -808,6 +857,10 @@ def calculateBootstrapWindow(self):
     Entry(self.confidenceIntervalPercentContainer, textvariable=self.options.confidenceIntervalPercent, width=7).pack(side=LEFT, anchor=W)
     Label(self.confidenceIntervalPercentContainer, text="%").pack(side=LEFT, anchor=W)
     Tooltip(self.confidenceIntervalPercentContainer, text="1 sigma: 68.75, 2 sigma: 95.45, 3 sigma: 99.73. 2-way p<0.05 @ = 83.4", wraplength=self.wraplength)
+
+    self.nIsLogOrLinContainer.pack(anchor=W)
+    for text, mode in [["Linear n", True], ["Logarithmic n", False]]:
+        Radiobutton(self.nIsLogOrLinContainer, text=text, value=mode, variable=self.options.nIsLinear).pack(side=LEFT, anchor=W)
 
     self.confidenceIntervalSchemeContainer.pack(anchor=W)
     Label(self.confidenceIntervalSchemeContainer, text="CI technique: ").pack(side=LEFT)

@@ -36,7 +36,8 @@ def calculateLKBuncert(self):
 
     for patients in cohortList:
         patients.options = self.options
-        patients.pSpace = patients.ParameterSpace(nIterations, self.options.NTCPcalculation.get(), self.log, patients.cohort)
+        patients.pSpace = patients.ParameterSpace(nIterations, self.options.NTCPcalculation.get(),
+                                                  self.log, patients.cohort, self.options.nIsLinear.get())
 
         if self.options.NTCPcalculation.get() == "Logit":
             patients.calculateDpercent(self.options.NTCPcalculationDpercent.get())

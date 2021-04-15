@@ -6,7 +6,7 @@ from ..Tools import *
 
 
 class ParameterSpace:
-    def __init__(self, nIterations, model, log, cohort):
+    def __init__(self, nIterations, model, log, cohort, nIsLinear):
         self.model = model
 
         if self.model == "Logit":
@@ -31,6 +31,7 @@ class ParameterSpace:
         self.upperPercent = None
         self.lowerPercent = None
         self.cohort = cohort
+        self.nIsLinear = nIsLinear
 
     def addPoint(self, x1, x2, x3=None):
         if self.model == "Logit":
@@ -154,9 +155,23 @@ class ParameterSpace:
             parameters['TD5'] = -(log(19) + self.parameters['a']) / self.parameters['b']
 
         for idx, p in enumerate(parameters.keys()):
-            axs[idx].hist(x=self.parameterSpace[p], bins=50)
+            if p == "n" and not self.nIsLinear:
+                low = np.min(self.parameterSpace[p])
+                high = np.max(self.parameterSpace[p])
+                bins = np.logspace(np.log10(low * 0.8), np.log10(high * 1.2), 50)
+                axs[idx].hist(x=self.parameterSpace[p], bins=bins)
+                axs[idx].set_xscale('log')
+            else:
+                axs[idx].hist(x=self.parameterSpace[p], bins=50)
+
             axs[idx].set_xlabel(f"{p} values")
             axs[idx].set_title(f"Parameter space for {p} ({self.cohort})")
+
+            uncorrectedCI = [np.percentile(self.parameterSpace[p], perc) for perc in [self.lowerPercent, self.upperPercent]]
+
+            # Uncorrected
+            axs[idx].plot([uncorrectedCI[0]] * 2, axs[idx].get_ybound(), "g-",
+                          [uncorrectedCI[1]] * 2, axs[idx].get_ybound(), "g-")
 
             axs[idx].plot([self.CI[p][0]] * 2, axs[idx].get_ybound(), 'k-',
                           [self.CI[p][1]] * 2, axs[idx].get_ybound(), 'k-')
@@ -180,6 +195,8 @@ class ParameterSpace:
                 axs[idx].set_xlabel("TD50 parameter")
                 axs[idx].set_ylabel(f"{secondPar} parameter")
                 axs[idx].set_title(f"TD50 vs {secondPar} for {self.cohort}")
+                if secondPar == 'n' and not self.nIsLinear:
+                    axs[idx].set_yscale('log')
 
         else:
             idx += 1

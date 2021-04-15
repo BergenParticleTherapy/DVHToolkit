@@ -201,7 +201,7 @@ class MainMenu(Frame):
         self.logtext.pack(side=LEFT, fill="both", expand=True)
         self.log("----- LOG -----")
 
-        self.buttonCalculateGEUD = Button(self.bottomContainer1, text="Calculate gEUD LUT (G)", command=self.calculateGEUDCommand, width=self.button_width, state=DISABLED)
+        self.buttonCalculateGEUD = Button(self.bottomContainer1, text="Calculate gEUD LUT (G)", command=self.calculateGEUDWindow, width=self.button_width, state=DISABLED)
         self.buttonShowGEUDvsN = Button(self.bottomContainer1, text="Show gEUD/n (H)", command=self.showGEUDvsN, width=self.button_width, state=DISABLED)
         self.buttonShowDVH = Button(self.bottomContainer1, text="Show DVHs (D)", command=self.showDVHCommand, width=self.button_width, state=DISABLED)
         self.buttonCalculateDVH = Button(self.bottomContainer1, text="Save DVH values (C)", command=self.calculateDVHCommand, width=self.button_width, state=DISABLED)
@@ -241,6 +241,7 @@ class MainMenu(Frame):
     from ._GUIelements import customAggregatedDVHCommand, cancelCustomAggregateDVHCommand, matchCustomAggregateDVHCommand
     from ._GUIelements import saveCustomAggregateDVHCommand, packCustomAggregateDVHCommand, calculateNTCPWindow, calculateNTCPWindowCancel, switchToNTCPcc
     from ._GUIelements import calculateBootstrapWindow, calculateBootstrapWindowCancel, autodetectDVHHeaderCommand
+    from ._GUIelements import calculateGEUDWindow, cancelCalculateGEUDCommand
 
     from ._Analysis import calculateDVHvalues, calculateAggregatedDVH
     from ._NTCPbootstrap import calculateLKBuncert

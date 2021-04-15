@@ -6,7 +6,7 @@ By Helge Egil Seime Pettersen, Haukeland University Hospital, 2019.
 
 The program consists of a single window with some dialog options. Most of the buttons and options are documented with a tooltip, accessed by holding the pointer above the wanted option. All settings are saved upon exiting.
 
-Current version: 1.62
+Current version: 1.67
 
 ![main window](https://raw.githubusercontent.com/BergenParticleTherapy/DVHToolkit/master/figures/mainwindow.PNG)
 
@@ -68,6 +68,8 @@ are identified, where ![](https://latex.codecogs.com/svg.latex?\chi^2&space;(1)/
 ![Profile likelihood](https://raw.githubusercontent.com/BergenParticleTherapy/DVHToolkit/master/figures/profilelikelihood.png)
 - Non-parametric Bootstrap: This statistical method originates from [9], and is a Monte Carlo-type method to increase the statistical power of a sample. With n patients in the cohort, n patients are chosen at random (with replacement). For each synthetic cohort, a parameter optimization is performed to obtain a new set of parameters a,b or n,m,TD50. The resulting distribution of parameters is used to calculate the statistics such as 95% confidence interval, median parameters etc. This process is repeated 1000-2000 times (chosen as the Number of CI bootstrapping iterations). If the «Use CI median as parameters» is chosen, the median value of this new distribution substitutes the former found optimal parameter set in future NTCP plots (calculate NTCP model after Calculate Confidence Intervals)
 - Parametric bootstrap: Similar to the non-parametric bootstrap. Instead of choosing a synthetic cohort, now the cohort it kept but for each patient a random number ![](https://latex.codecogs.com/svg.latex?r_n) is generated. If the NTCP calculated from the model fitted paramateters is lower than this value, no complication is assumed, and if ![](https://latex.codecogs.com/svg.latex?r_n<\mathrm{NTCP}) complication is assumed. Then, a parameter set is found from this new toxicity cohort: to be repeated 1000-2000 times.
+
+The black lines are bias corrected confidence, intervals, while the green ones are uncorrected.
 
 ![Bootstrap distributions](https://raw.githubusercontent.com/BergenParticleTherapy/DVHToolkit/master/figures/bootstrapdistributions.PNG)
 

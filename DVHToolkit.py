@@ -107,6 +107,12 @@
 # Added NTCP constaints (by adding artificial non-tox + tox patients at set limits)
 # TODO: Bug in autodetect Simple
 
+# Changelog version 1.67
+# Added support for logarithmic seriality parameter n
+# Added gEUD dialog window for more transparent choice
+# Added uncorrected confidence interval for bootstrap histogram (in green)
+# Bug fix for greyed out bootstrap option
+
 import sys
 from tkinter import *
 from modules import MainMenu

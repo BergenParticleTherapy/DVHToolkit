@@ -40,6 +40,8 @@ class Options():
         self.nFrom = DoubleVar(value=0.02)
         self.nTo = DoubleVar(value=1)
         self.nSet = DoubleVar(value=1)
+        self.nGrid = IntVar(value=50)
+        self.nIsLinear = IntVar(value=0)
 
         self.fixM = IntVar(value=0)
         self.mFrom = DoubleVar(value=0.03)
@@ -107,7 +109,7 @@ class Options():
                      "dvhPlotSeparatePlots": self.dvhPlotSeparatePlots, "dvhPlotsSaveFigs": self.dvhPlotsSaveFigs,
                      "dvhPlotLegendSize": self.dvhPlotLegendSize, "makeDifferentialCI": self.makeDifferentialCI,
                      "useNTCPcc": self.useNTCPcc, "nSet": self.nSet, "NTCPBoundWeight": self.NTCPBoundWeight,
-                     "NTCPBoundUpper": self.NTCPBoundUpper, "NTCPBoundLower": self.NTCPBoundLower}
+                     "NTCPBoundUpper": self.NTCPBoundUpper, "NTCPBoundLower": self.NTCPBoundLower, "nGrid": self.nGrid}
 
     def loadOptions(self):
         read = False

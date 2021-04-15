@@ -147,29 +147,33 @@ class Patient:
         def integrate_eud(row):
             return row["Avg. Dose"] ** ninv * row["Diff. Volume"]
 
-        if not self.checkGEUDsplines(options):
-            nList = np.arange(min(0.05, options.nFrom.get() * 0.8), max(options.nTo.get() * 1.2, 2), 0.02)
-            # nList = np.arange(0.05, 2.0, 0.05)
-            GEUDlist = []
-            for n in nList:
-                ninv = 1 / n
-                EUD = self.dvh.apply(integrate_eud, axis=1)
-                GEUD = EUD.sum() ** n
-                GEUDlist.append(GEUD)
-            try:
-                self.nList = np.array(nList)
-                self.GEUDlist = np.array(GEUDlist)
-            except:
-                print(f"Could not create gEUD list for patient {self.ID}.")
-                self.nList = None
-                self.GEUDlist = None
+        # if not self.checkGEUDsplines(options):
 
-            # Save result to CSV files
-            if not os.path.exists(f"{self.dataFolder}/gEUD/"):
-                os.makedirs(f"{self.dataFolder}/gEUD/")
-            with open(f"{self.dataFolder}/gEUD/gEUD_{self.cohort}_{self.structure}_{self.ID}.csv", "wb") as fh:
-                for n, GEUD in zip(nList, GEUDlist):
-                    fh.write(b"%.3f,%.3f\n" % (n, GEUD))
+        if options.nIsLinear.get():
+            nList = np.linspace(options.nFrom.get() * 0.8, options.nTo.get() * 1.2, options.nGrid)
+        else:
+            nList = np.logspace(np.log10(options.nFrom.get() * 0.8), np.log10(options.nTo.get() * 1.2), options.nGrid.get())
+
+        GEUDlist = []
+        for n in nList:
+            ninv = 1 / n
+            EUD = self.dvh.apply(integrate_eud, axis=1)
+            GEUD = EUD.sum() ** n
+            GEUDlist.append(GEUD)
+        try:
+            self.nList = np.array(nList)
+            self.GEUDlist = np.array(GEUDlist)
+        except:
+            print(f"Could not create gEUD list for patient {self.ID}.")
+            self.nList = None
+            self.GEUDlist = None
+
+        # Save result to CSV files
+        if not os.path.exists(f"{self.dataFolder}/gEUD/"):
+            os.makedirs(f"{self.dataFolder}/gEUD/")
+        with open(f"{self.dataFolder}/gEUD/gEUD_{self.cohort}_{self.structure}_{self.ID}.csv", "wb") as fh:
+            for n, GEUD in zip(nList, GEUDlist):
+                fh.write(b"%.3f,%.3f\n" % (n, GEUD))
 
     def getGEUD(self, n):
         if self.lastN == n:

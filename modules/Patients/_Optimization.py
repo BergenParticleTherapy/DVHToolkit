@@ -155,7 +155,7 @@ def doGradientOptimization(self, progress):
         if self.options.NTCPBoundWeight.get():
             NTCP = 1 - 1 / (1 + exp(x[0] + x[1] * self.options.NTCPBoundLower.get()))
             error += len(args) * self.options.NTCPBoundWeight.get() * (NTCP ** 2)
-            
+
         if self.options.NTCPBoundWeight.get():
             NTCP = 1 - 1 / (1 + exp(x[0] + x[1] * self.options.NTCPBoundHigher.get()))
             error += len(args) * self.options.NTCPBoundWeight.get() * (1 - NTCP)**2
@@ -172,11 +172,11 @@ def doGradientOptimization(self, progress):
 
         # Lower and Upper bounds to optimization ("all cases below X Gy should be negative")
         if self.options.NTCPBoundWeight.get():
-            NTCP = HPM((self.options.NTCPBoundLower.get() - x[2])/(x[1]*x[2]))
+            NTCP = HPM((self.options.NTCPBoundLower.get() - x[2]) / (x[1] * x[2]))
             error += len(args) * self.options.NTCPBoundWeight.get() * (NTCP ** 2)
-            
+
         if self.options.NTCPBoundWeight.get():
-            NTCP = HPM((self.options.NTCPBoundUpper.get() - x[2])/(x[1]*x[2]))
+            NTCP = HPM((self.options.NTCPBoundUpper.get() - x[2]) / (x[1] * x[2]))
             error += len(args) * self.options.NTCPBoundWeight.get() * (1 - NTCP)**2
 
         return error
@@ -197,11 +197,10 @@ def doGradientOptimization(self, progress):
         if self.options.NTCPBoundWeight.get():
             NTCP = 1 - 1 / (1 + exp(x[0] + x[1] * self.options.NTCPBoundLower.get()))
             error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(1 - NTCP, 1e-323))
-            
+
         if self.options.NTCPBoundWeight.get():
             NTCP = 1 - 1 / (1 + exp(x[0] + x[1] * self.options.NTCPBoundHigher.get()))
             error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(NTCP, 1e-323))
-
 
         return error
 
@@ -219,11 +218,11 @@ def doGradientOptimization(self, progress):
 
         # Lower and Upper bounds to optimization ("all cases below X Gy should be negative")
         if self.options.NTCPBoundWeight.get():
-            NTCP = HPM((self.options.NTCPBoundLower.get() - x[2])/(x[1]*x[2]))
+            NTCP = HPM((self.options.NTCPBoundLower.get() - x[2]) / (x[1] * x[2]))
             error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(1 - NTCP, 1e-323))
-            
+
         if self.options.NTCPBoundWeight.get():
-            NTCP = HPM((self.options.NTCPBoundUpper.get() - x[2])/(x[1]*x[2]))
+            NTCP = HPM((self.options.NTCPBoundUpper.get() - x[2]) / (x[1] * x[2]))
             error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(NTCP, 1e-323))
 
         return error
@@ -293,7 +292,8 @@ def doGradientOptimization(self, progress):
         fun = None
 
     res = basinhopping(fun, x0, niter=self.options.basinHoppingIterations.get(), T=self.options.basinHoppingTemperature.get(),
-                       minimizer_kwargs={'args': argTuple, 'method': 'TNC', 'bounds': bounds}, take_step=mytakestep, callback=print_fun)
+                       minimizer_kwargs={'args': argTuple, 'method': 'TNC', 'bounds': bounds},
+                       take_step=mytakestep, callback=print_fun)
 
     self.bestParameters = res.x
 
