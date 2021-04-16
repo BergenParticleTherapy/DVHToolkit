@@ -19,23 +19,10 @@ class MainMenu(Frame):
         self.wraplength = 250
         self.button_width = 25
 
+        self.idx = dict()
+        self.resetIdx()
+
         self.bestParameters = []
-
-        """
-        self.bestParametersNone = []
-        self.bestParametersMean = []
-        self.bestParametersMedian = []
-        self.confidenceInterval = [[0, 0], [0, 0], [0, 0]]
-        self.confidenceIntervalNone = [[0, 0], [0, 0], [0, 0]]
-        self.confidenceIntervalMean = [[0, 0], [0, 0], [0, 0]]
-        self.confidenceIntervalMedian = [[0, 0], [0, 0], [0, 0]]
-        self.correlationValueLogit = -0.016
-        self.aHist = []
-        self.bHist = []
-        self.TD50Hist = []
-        self.LLHhist = []
-        """
-
         self.calculateMeanDose = IntVar(value=1)
         self.paramNEntry = []
         self.paramMEntry = []
@@ -241,7 +228,7 @@ class MainMenu(Frame):
     from ._GUIelements import customAggregatedDVHCommand, cancelCustomAggregateDVHCommand, matchCustomAggregateDVHCommand
     from ._GUIelements import saveCustomAggregateDVHCommand, packCustomAggregateDVHCommand, calculateNTCPWindow, calculateNTCPWindowCancel, switchToNTCPcc
     from ._GUIelements import calculateBootstrapWindow, calculateBootstrapWindowCancel, autodetectDVHHeaderCommand
-    from ._GUIelements import calculateGEUDWindow, cancelCalculateGEUDCommand
+    from ._GUIelements import calculateGEUDWindow, cancelCalculateGEUDCommand, resetIdx
 
     from ._Analysis import calculateDVHvalues, calculateAggregatedDVH
     from ._NTCPbootstrap import calculateLKBuncert

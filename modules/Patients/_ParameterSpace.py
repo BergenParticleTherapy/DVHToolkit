@@ -6,8 +6,11 @@ from ..Tools import *
 
 
 class ParameterSpace:
-    def __init__(self, nIterations, model, log, cohort, nIsLinear):
-        self.model = model
+    def __init__(self, nIterations, log, cohort, options, idxParam):
+        self.options = options
+
+        self.model = self.options.NTCPcalculation.get()
+        self.idxParam = idxParam
 
         if self.model == "Logit":
             self.parameters = {'a': None, 'b': None}
@@ -31,16 +34,16 @@ class ParameterSpace:
         self.upperPercent = None
         self.lowerPercent = None
         self.cohort = cohort
-        self.nIsLinear = nIsLinear
+        self.nIsLinear = self.options.nIsLinear.get()
 
-    def addPoint(self, x1, x2, x3=None):
+    def addPoint(self, x):
         if self.model == "Logit":
-            self.parameterSpace['a'][self.idx] = x1
-            self.parameterSpace['b'][self.idx] = x2
+            self.parameterSpace['a'][self.idx] = self.options.fixA.get() and self.options.aFrom.get() or x[self.idxParam['a']]
+            self.parameterSpace['b'][self.idx] = self.options.fixB.get() and self.options.bFrom.get() or x[self.idxParam['b']]
         else:
-            self.parameterSpace['n'][self.idx] = x1
-            self.parameterSpace['m'][self.idx] = x2
-            self.parameterSpace['TD50'][self.idx] = x3
+            self.parameterSpace['n'][self.idx] = self.options.fixN.get() and self.options.nFrom.get() or x[self.idxParam['n']]
+            self.parameterSpace['m'][self.idx] = self.options.fixM.get() and self.options.mFrom.get() or x[self.idxParam['m']]
+            self.parameterSpace['TD50'][self.idx] = self.options.fixTD50.get() and self.options.TD50From.get() or x[self.idxParam['TD50']]
 
         self.idx += 1
 
@@ -57,10 +60,21 @@ class ParameterSpace:
             self.parameters[k] = v
 
     def getParameters(self):
+        params = list()
         if self.model == "Logit":
-            return [self.parameters[k] for k in ['a', 'b']]
+            if not self.options.fixA.get():
+                params.append(self.parameters['a'])
+            if not self.options.fixB.get():
+                params.append(self.parameters['b'])
         else:
-            return [self.parameters[k] for k in ['n', 'm', 'TD50']]
+            if not self.options.fixN.get():
+                params.append(self.parameters['n'])
+            if not self.options.fixM.get():
+                params.append(self.parameters['m'])
+            if not self.options.fixTD50.get():
+                params.append(self.parameters['TD50'])
+
+        return params
 
     def calculateCI(self):
         for k, v in self.parameters.items():
@@ -124,6 +138,8 @@ class ParameterSpace:
 
         self.parameters = {k: 2 * v - correctionStatistics[self.bootstrapCorrectionMethod][k] for k, v in self.parameters.items()}
 
+        # Fix any parameters outside physical limits
+
         pString = ", ".join([f"{k} = {v:.3f}" for k, v in self.parameters.items()])
         self.print2(f"Using the {self.bootstrapCorrectionMethod} pivot bias correction method, the corrected best fits were {pString}.")
 
@@ -176,10 +192,12 @@ class ParameterSpace:
             axs[idx].plot([self.CI[p][0]] * 2, axs[idx].get_ybound(), 'k-',
                           [self.CI[p][1]] * 2, axs[idx].get_ybound(), 'k-')
 
-            ci_95[p] = [2 * parameters[p] - np.percentile(self.parameterSpace[p], k) for k in [97.5, 2.5]]
-            ci_68[p] = [2 * parameters[p] - np.percentile(self.parameterSpace[p], k) for k in [84, 16]]
-
-            print(p, ci_95[p])
+            if self.bootstrapCorrectionMethod == "none":
+                ci_95[p] = [np.percentile(self.parameterSpace[p], k) for k in [97.5, 2.5]]
+                ci_68[p] = [np.percentile(self.parameterSpace[p], k) for k in [84, 16]]
+            else:
+                ci_95[p] = [2 * parameters[p] - np.percentile(self.parameterSpace[p], k) for k in [97.5, 2.5]]
+                ci_68[p] = [2 * parameters[p] - np.percentile(self.parameterSpace[p], k) for k in [84, 16]]
 
             filter_95 *= (self.parameterSpace[p] >= ci_95[p][0]) & (self.parameterSpace[p] <= ci_95[p][1])
             filter_68 *= (self.parameterSpace[p] >= ci_68[p][0]) & (self.parameterSpace[p] <= ci_68[p][1])

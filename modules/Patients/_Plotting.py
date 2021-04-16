@@ -18,13 +18,13 @@ def drawSigmoid(self, log, style1, style2):
     D50_upper = None
 
     if self.options.NTCPcalculation.get() == "LKB":
-        n = self.bestParameters[0]
-        m = self.bestParameters[1]
-        TD50 = self.bestParameters[2]
+        n = self.options.fixN.get() and self.options.nFrom.get() or self.bestParameters[self.idx['n']]
+        m = self.options.fixM.get() and self.options.mFrom.get() or self.bestParameters[self.idx['m']]
+        TD50 = self.options.fixTD50.get() and self.options.TD50From.get() or self.bestParameters[self.idx['TD50']]
 
     else:
-        a = self.bestParameters[0]
-        b = self.bestParameters[1]
+        a = self.options.fixA.get() and self.options.aFrom.get() or self.bestParameters[self.idx['a']]
+        b = self.options.fixB.get() and self.options.bFrom.get() or self.bestParameters[self.idx['b']]
 
     x = np.arange(0, 120, 0.1)
     yExtra = []

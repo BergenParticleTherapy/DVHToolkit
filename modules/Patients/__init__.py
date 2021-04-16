@@ -36,6 +36,9 @@ class Patients:
         self.LLHhist = []
         """
 
+        self.idx = dict()
+        self.resetIdx()
+
         self.pSpace = None
 
         self.plot = None
@@ -50,6 +53,40 @@ class Patients:
     from ._Optimization import doGradientOptimization, doMatrixMinimization, profileLikelihood
     from ._Plotting import drawSigmoid, drawAUROC
     from ._ParameterSpace import ParameterSpace
+
+    def resetIdx(self):
+        self.idx = {'n': 0, 'm': 1, 'TD50': 2, 'lambda': 3, 'gamma': 4}
+        if self.options.fixN.get():
+            self.idx['m'] -= 1
+            self.idx['TD50'] -= 1
+            self.idx['lambda'] -= 1
+            self.idx['gamma'] -= 1
+
+        if self.options.fixM.get():
+            self.idx['TD50'] -= 1
+            self.idx['lambda'] -= 1
+            self.idx['gamma'] -= 1
+
+        if self.options.fixTD50.get():
+            self.idx['lambda'] -= 1
+            self.idx['gamma'] -= 1
+
+        if self.options.fixLambda.get():
+            self.idx['gamma'] -= 1
+
+        if self.options.NTCPcalculation.get() == "Logit":  # Reset lambda / gamma paramters if so
+            self.idx = {'a': 0, 'b': 1, 'lambda': 2, 'gamma': 3}
+            if self.options.fixA.get():
+                self.idx['b'] -= 1
+                self.idx['lambda'] -= 1
+                self.idx['gamma'] -= 1
+
+            if self.options.fixB.get():
+                self.idx['lambda'] -= 1
+                self.idx['gamma'] -= 1
+
+            if self.options.fixLamda.get():
+                self.idx['gamma'] -= 1
 
     def setDataFolder(self, folder):
         self.dataFolder = folder
@@ -232,9 +269,9 @@ class Patients:
                 for structure, plan in zip(structures, plans):
                     if match(self.options.structureToUse.get(), structure[0]) and match(self.options.planToUse.get(), plan[0]):
                         if self.options.autodetectDVHHeader.get():
-                            header_dict = {"Dose [Gy]": "Dose", "Dose [cGy]": "Dose", "Ratio of Total Structure Volume [%]": "Volume", 
-                            "Structure Volume [cmÂ³]": "Volume", "Relative dose [%]": "Relative dose"}
-                            
+                            header_dict = {"Dose [Gy]": "Dose", "Dose [cGy]": "Dose", "Ratio of Total Structure Volume [%]": "Volume",
+                                           "Structure Volume [cmÂ³]": "Volume", "Relative dose [%]": "Relative dose"}
+
                             possible_headers = list(header_dict.keys())
 
                             header_index = list()
@@ -582,15 +619,15 @@ class Patients:
             return
 
         if self.options.NTCPcalculation.get() == "LKB":
-            n = self.bestParameters[0]
-            m = self.bestParameters[1]
-            TD50 = self.bestParameters[2]
+            n = self.options.fixN.get() and self.options.nFrom.get() or self.bestParameters[self.idx['n']]
+            m = self.options.fixM.get() and self.options.mFrom.get() or self.bestParameters[self.idx['m']]
+            TD50 = self.options.fixTD50.get() and self.options.TD50From.get() or self.bestParameters[self.idx['TD50']]
 
             for patient in list(self.patients.values()):
                 patient.NTCP = HPM((patient.getGEUD(n) - TD50) / (m * TD50))
         else:
-            a = self.bestParameters[0]
-            b = self.bestParameters[1]
+            a = self.options.fixA.get() and self.options.aFrom.get() or self.bestParameters[self.idx['a']]
+            b = self.options.fixB.get() and self.options.bFrom.get() or self.bestParameters[self.idx['b']]
 
             for patient in list(self.patients.values()):
                 patient.NTCP = 1 - 1 / (1 + exp(a + b * patient.getDpercent()))

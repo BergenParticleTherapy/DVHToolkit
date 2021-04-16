@@ -36,20 +36,26 @@ def calculateLKBuncert(self):
 
     for patients in cohortList:
         patients.options = self.options
-        patients.pSpace = patients.ParameterSpace(nIterations, self.options.NTCPcalculation.get(),
-                                                  self.log, patients.cohort, self.options.nIsLinear.get())
+        patients.pSpace = patients.ParameterSpace(nIterations, self.log, patients.cohort, self.options, patients.idx)
 
         if self.options.NTCPcalculation.get() == "Logit":
             patients.calculateDpercent(self.options.NTCPcalculationDpercent.get())
             if np.sum(patients.bestParameters):
-                patients.pSpace.setParameters({'a': patients.bestParameters[0], 'b': patients.bestParameters[1]})
+                a = self.options.fixA.get() and self.options.aFrom.get() or patients.bestParameters[patients.idx['a']]
+                b = self.options.fixB.get() and self.options.bFrom.get() or patients.bestParameters[patients.idx['b']]
+                patients.pSpace.setParameters({'a': a, 'b': b})
 
         else:
             if np.sum(patients.bestParameters):
-                patients.pSpace.setParameters({'n': patients.bestParameters[0], 'm': patients.bestParameters[1], 'TD50': patients.bestParameters[2]})
+                n = self.options.fixN.get() and self.options.nFrom.get() or patients.bestParameters[patients.idx['n']]
+                m = self.options.fixM.get() and self.options.mFrom.get() or patients.bestParameters[patients.idx['m']]
+                TD50 = self.options.fixTD50.get() and self.options.TD50From.get() or patients.bestParameters[patients.idx['TD50']]
+
+                patients.pSpace.setParameters({'n': n, 'm': m, 'TD50': TD50})
 
         if self.options.optimizationScheme.get() == "GradientDescent":
             res = patients.doGradientOptimization(self.progress)
+            assert not isinstance(res, int)
 
         elif self.options.optimizationScheme.get() == "MatrixMinimization":
             res = patients.doMatrixMinimization(self.progress)
@@ -88,7 +94,7 @@ def calculateLKBuncert(self):
                 if res.fun < -self.options.confidenceIntervalLikelihoodLimit.get():
                     continue
 
-                patients.pSpace.addPoint(*res.x)
+                patients.pSpace.addPoint(res.x)
                 patients.pSpace.addPointLLH(-res.fun)
 
                 patients.restoreTox()
@@ -106,6 +112,7 @@ def calculateLKBuncert(self):
 
                 newPatientCohort = Patients(self.options)
                 newPatientCohort.bestParameters = list(patients.bestParameters)
+                newPatientCohort.idx = patients.idx
 
                 nTox = 0
                 for n in range(nPatients):
@@ -139,18 +146,18 @@ def calculateLKBuncert(self):
                 if res.fun < -self.options.confidenceIntervalLikelihoodLimit.get():
                     continue
 
-                patients.pSpace.addPoint(*res.x)
+                patients.pSpace.addPoint(res.x)
                 patients.pSpace.addPointLLH(-res.fun)
 
         elif self.options.confidenceIntervalMethod.get() == "ProfileLikelihood":
             res = patients.profileLikelihood()
             if self.options.NTCPcalculation.get() == "Logit":
-                patients.pSpace.CI["a"] = res[0]
-                patients.pSpace.CI["b"] = res[1]
+                patients.pSpace.CI["a"] = res[patients.idx['a']]
+                patients.pSpace.CI["b"] = res[patients.idx['b']]
             else:
-                patients.pSpace.CI["n"] = res[0]
-                patients.pSpace.CI["m"] = res[1]
-                patients.pSpace.CI["TD50"] = res[2]
+                patients.pSpace.CI["n"] = res[patients.idx['n']]
+                patients.pSpace.CI["m"] = res[patients.idx['m']]
+                patients.pSpace.CI["TD50"] = res[patients.idx['TD50']]
 
             patients.pSpace.printCI()
 

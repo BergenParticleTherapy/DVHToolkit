@@ -117,6 +117,13 @@
 # Bugfix on linear seriality parameter n
 # Catch negative doses before gEUD calculation
 
+# Changelog version 1.7
+# Changed functionality of bestParameter for smoother optimization
+# -> No doesn't contain fixed variables
+# -> The MainMenu::idx and Patients::idx dictionary is the parameter index bestParameter
+# -> Also, a dict p is given to the basinjumping error function to ensure constancy of fixed parameters
+# These changes were mitigated everywhere ... I hope
+
 import sys
 from tkinter import *
 from modules import MainMenu

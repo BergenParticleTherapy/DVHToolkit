@@ -1466,6 +1466,10 @@ def switchNto(self):
         else:
             self.paramNEntry[-1]['state'] = 'normal'
 
+    # IN ANY CASE RESET BESTPARAMETER LIST
+    for patientsInCohort in self.patients.values():
+        patientsInCohort.bestParameters = list()
+        patientsInCohort.resetIdx()
 
 def switchMto(self):
     if self.options.NTCPcalculation.get() == "LKB":
@@ -1479,10 +1483,53 @@ def switchMto(self):
         else:
             self.paramMEntry[-1]['state'] = 'normal'
 
+    # IN ANY CASE RESET BESTPARAMETER LIST
+    for patientsInCohort in self.patients.values():
+        patientsInCohort.bestParameters = list()
+        patientsInCohort.resetIdx()
+
 
 def switchTD50to(self):
     if self.options.fixTD50.get(): 
         self.paramTD50Entry[-1]['state'] = 'disabled'
     else:
         self.paramTD50Entry[-1]['state'] = 'normal'
+    
+    # IN ANY CASE RESET BESTPARAMETER LIST
+    for patientsInCohort in self.patients.values():
+        patientsInCohort.bestParameters = list()
+        patientsInCohort.resetIdx()
 
+def resetIdx(self):
+    self.idx = {'n': 0, 'm': 1, 'TD50': 2, 'lambda': 3, 'gamma': 4}
+    if self.options.fixN.get():
+        self.idx['m'] -= 1
+        self.idx['TD50'] -= 1
+        self.idx['lambda'] -= 1
+        self.idx['gamma'] -= 1
+
+    if self.options.fixM.get():
+        self.idx['TD50'] -= 1
+        self.idx['lambda'] -= 1
+        self.idx['gamma'] -= 1
+
+    if self.options.fixTD50.get():
+        self.idx['lambda'] -= 1
+        self.idx['gamma'] -= 1
+
+    if self.options.fixLambda.get():
+        self.idx['gamma'] -= 1
+
+    if self.options.NTCPcalculation.get() == "Logit":  # Reset lambda / gamma paramters if so
+        self.idx = {'a': 0, 'b': 1, 'lambda': 2, 'gamma': 3}
+        if self.options.fixA.get():
+            self.idx['b'] -= 1
+            self.idx['lambda'] -= 1
+            self.idx['gamma'] -= 1
+
+        if self.options.fixB.get():
+            self.idx['lambda'] -= 1
+            self.idx['gamma'] -= 1
+
+        if self.options.fixLambda.get():
+            self.idx['gamma'] -= 1
