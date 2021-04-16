@@ -138,8 +138,24 @@ def doGradientOptimization(self, progress):
 
             eps = 1e-6
             for idx in range(len(x)):  # Don't push x beyond bounds
-                x[idx] = max(x[idx], bounds[idx][0]) + eps
-                x[idx] = min(x[idx], bounds[idx][1]) - eps
+                x[idx] = max(x[idx], bounds[idx][0]) - eps
+                x[idx] = min(x[idx], bounds[idx][1]) + eps
+
+            # Don't mess with fixed values
+            if self.options.NTCPcalculation.get() == "Logit":
+                if self.options.fixA.get():
+                    x[0] = self.options.aFrom.get()
+                if self.options.fixB.get():
+                    x[1] = self.options.bFrom.get()
+            else:
+                if self.options.fixN.get():
+                    x[0] = self.options.nFrom.get()
+                if self.options.fixM.get():
+                    x[1] = self.options.mFrom.get()
+                if self.options.fixTD50.get():
+                    x[2] = self.options.TD50From.get()
+
+            print("after takestep", x)
 
             return x
 
@@ -210,6 +226,7 @@ def doGradientOptimization(self, progress):
 
     def funLKBLLH(x, *args):
         error = 0
+        print("in LKBLLH", x)
         for tox, GEUDspline, time in args:
             gEUD = GEUDspline(x[0])
             if gEUD < 0:
@@ -255,49 +272,29 @@ def doGradientOptimization(self, progress):
             argTuple += ((patient.getTox() >= self.options.toxLimit.get(), patient.getGEUD, NTCPTime),)
 
     mytakestep = MyTakeStep(self.options)
+
     if self.options.NTCPcalculation.get() == "Logit":
-        if not self.NTCPTimeDict:
-            bounds = ((self.options.aFrom.get(), self.options.fixA.get() and self.options.aFrom.get() or self.options.aTo.get()),
-                      (self.options.bFrom.get(), self.options.fixB.get() and self.options.bFrom.get() or self.options.bTo.get()))
-        else:
-            bounds = ((self.options.aFrom.get(), self.options.fixA.get() and self.options.aFrom.get() or self.options.aTo.get()),
-                      (self.options.bFrom.get(), self.options.fixB.get() and self.options.bFrom.get() or self.options.bTo.get()),
-                      (self.options.lambdaFrom.get(), self.options.fixLambda.get() and self.options.lambdaFrom.get() or self.options.lambdaTo.get()),
-                      (self.options.gammaFrom.get(), self.options.fixGamma.get() and self.options.gammaFrom.get() or self.options.gammaTo.get()))
+        bounds = [(self.options.aFrom.get(), self.options.fixA.get() and self.options.aFrom.get() or self.options.aTo.get()),
+                  (self.options.bFrom.get(), self.options.fixB.get() and self.options.bFrom.get() or self.options.bTo.get())]
+        if self.NTCPTimeDict:
+            bounds.append((self.options.lambdaFrom.get(), self.options.fixLambda.get() and self.options.lambdaFrom.get() or self.options.lambdaTo.get()),
+                          (self.options.gammaFrom.get(), self.options.fixGamma.get() and self.options.gammaFrom.get() or self.options.gammaTo.get()))
 
-        if len(self.bestParameters):
-            x0 = np.array(self.bestParameters[:2])
-        else:
-            x0 = np.mean(bounds, axis=1)
+        x0 = np.mean(bounds, axis=1)
 
     else:
-        if not self.NTCPTimeDict:
-            bounds = ((self.options.nFrom.get(), self.options.fixN.get() and self.options.nFrom.get() or self.options.nTo.get()),
-                      (self.options.mFrom.get(), self.options.fixM.get() and self.options.mFrom.get() or self.options.mTo.get()),
-                      (self.options.TD50From.get(), self.options.fixTD50.get() and self.options.TD50From.get() or self.options.TD50To.get()))
-        else:
-            bounds = ((self.options.nFrom.get(), self.options.fixN.get() and self.options.nFrom.get() or self.options.nTo.get()),
-                      (self.options.mFrom.get(), self.options.fixM.get() and self.options.mFrom.get() or self.options.mTo.get()),
-                      (self.options.TD50From.get(), self.options.fixTD50.get() and self.options.TD50From.get() or self.options.TD50To.get()),
-                      (self.options.lambdaFrom.get(), self.options.fixLambda.get() and self.options.lambdaFrom.get() or self.options.lambdaTo.get()),
-                      (self.options.gammaFrom.get(), self.options.fixGamma.get() and self.options.gammaFrom.get() or self.options.gammaTo.get()))
+        bounds = [(self.options.nFrom.get(), self.options.fixN.get() and self.options.nFrom.get() or self.options.nTo.get()),
+                  (self.options.mFrom.get(), self.options.fixM.get() and self.options.mFrom.get() or self.options.mTo.get()),
+                  (self.options.TD50From.get(), self.options.fixTD50.get() and self.options.TD50From.get() or self.options.TD50To.get())]
 
-        if len(self.bestParameters):
-            x0 = np.array(self.bestParameters)
-        else:
-            x0 = np.mean(bounds, axis=1)
+        if self.NTCPTimeDict:
+            bounds.append((self.options.lambdaFrom.get(), self.options.fixLambda.get() and self.options.lambdaFrom.get() or self.options.lambdaTo.get()),
+                          (self.options.gammaFrom.get(), self.options.fixGamma.get() and self.options.gammaFrom.get() or self.options.gammaTo.get()))
 
-    if self.options.optimizationMetric.get() == "LLH" and self.options.NTCPcalculation.get() == "LKB":
-        fun = funLKBLLH
-    elif self.options.optimizationMetric.get() == "LLH" and self.options.NTCPcalculation.get() == "Logit":
-        fun = funLogitLLH
-    elif self.options.optimizationMetric.get() == "LS" and self.options.NTCPcalculation.get() == "LKB":
-        fun = funLKBLS
-    elif self.options.optimizationMetric.get() == "LS" and self.options.NTCPcalculation.get() == "Logit":
-        fun = funLogitLS
-    else:
-        raise Exception(f"No valid optimization function for optimization metric {self.options.optimizationMetric.get()} and NTCP={self.options.NTCPcalculation.get()}")
-        fun = None
+        x0 = np.mean(bounds, axis=1)
+
+    funs = {'LLH': {'LKB': funLKBLLH, 'Logit': funLogitLLH}, 'LS': {'LKB': funLKBLS, 'Logit': funLogitLS}}
+    fun = funs[self.options.optimizationMetric.get()][self.options.NTCPcalculation.get()]
 
     res = basinhopping(fun, x0, niter=self.options.basinHoppingIterations.get(), T=self.options.basinHoppingTemperature.get(),
                        minimizer_kwargs={'args': argTuple, 'method': 'TNC', 'bounds': bounds},

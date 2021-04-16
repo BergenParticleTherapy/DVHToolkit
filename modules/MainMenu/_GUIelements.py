@@ -1443,6 +1443,8 @@ def showGEUDvsN(self):
     plt.xlabel("n values")
     plt.ylabel("gEUD [Gy]")
     plt.title("Pre-calculated gEUD vs n (organ seriality parameter)")
+    if not self.options.nIsLinear.get():
+        plt.xscale('log')
 
     custom_lines = dict()
     custom_lines["Toxicity"] = Line2D([0], [0], color="r", ls="-", lw=2)

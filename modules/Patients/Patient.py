@@ -155,13 +155,16 @@ class Patient:
             nList = np.logspace(np.log10(options.nFrom.get() * 0.8), np.log10(options.nTo.get() * 1.2), options.nGrid.get())
 
         GEUDlist = []
+        nListGood = []
         for n in nList:
             ninv = 1 / n
             EUD = self.dvh.apply(integrate_eud, axis=1)
             GEUD = EUD.sum() ** n
-            GEUDlist.append(GEUD)
+            if not isinf(GEUD):
+                GEUDlist.append(GEUD)
+                nListGood.append(n)
         try:
-            self.nList = np.array(nList)
+            self.nList = np.array(nListGood)
             self.GEUDlist = np.array(GEUDlist)
         except:
             print(f"Could not create gEUD list for patient {self.ID}.")
@@ -172,7 +175,7 @@ class Patient:
         if not os.path.exists(f"{self.dataFolder}/gEUD/"):
             os.makedirs(f"{self.dataFolder}/gEUD/")
         with open(f"{self.dataFolder}/gEUD/gEUD_{self.cohort}_{self.structure}_{self.ID}.csv", "wb") as fh:
-            for n, GEUD in zip(nList, GEUDlist):
+            for n, GEUD in zip(self.nList, self.GEUDlist):
                 fh.write(b"%.3f,%.3f\n" % (n, GEUD))
 
     def getGEUD(self, n):
