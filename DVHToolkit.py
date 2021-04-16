@@ -113,6 +113,10 @@
 # Added uncorrected confidence interval for bootstrap histogram (in green)
 # Bug fix for greyed out bootstrap option
 
+# Changelog version 1.68
+# Bugfix on linear seriality parameter n
+# Catch negative doses before gEUD calculation
+
 import sys
 from tkinter import *
 from modules import MainMenu

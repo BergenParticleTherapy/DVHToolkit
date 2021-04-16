@@ -165,7 +165,11 @@ def doGradientOptimization(self, progress):
     def funLKBLS(x, *args):
         error = 0
         for tox, GEUDspline, time in args:
-            NTCP = HPM((GEUDspline(x[0]) - x[2]) / (x[1] * x[2]))
+            gEUD = GEUDspline(x[0])
+            if gEUD < 0:
+                NTCP = 0
+            else:
+                NTCP = HPM((GEUDspline(x[0]) - x[2]) / (x[1] * x[2]))
             if time and not tox:
                 NTCP *= (1 - exp(-(x[3] * time)**x[4]))
             error += (tox - NTCP) ** 2
@@ -207,7 +211,11 @@ def doGradientOptimization(self, progress):
     def funLKBLLH(x, *args):
         error = 0
         for tox, GEUDspline, time in args:
-            NTCP = HPM((GEUDspline(x[0]) - x[2]) / (x[1] * x[2]))
+            gEUD = GEUDspline(x[0])
+            if gEUD < 0:
+                NTCP = 0
+            else:
+                NTCP = HPM((GEUDspline(x[0]) - x[2]) / (x[1] * x[2]))
             if time and not tox:
                 NTCP *= (1 - exp(-(x[3] * time)**x[4]))
 

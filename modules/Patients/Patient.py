@@ -150,7 +150,7 @@ class Patient:
         # if not self.checkGEUDsplines(options):
 
         if options.nIsLinear.get():
-            nList = np.linspace(options.nFrom.get() * 0.8, options.nTo.get() * 1.2, options.nGrid)
+            nList = np.linspace(options.nFrom.get() * 0.8, options.nTo.get() * 1.2, options.nGrid.get())
         else:
             nList = np.logspace(np.log10(options.nFrom.get() * 0.8), np.log10(options.nTo.get() * 1.2), options.nGrid.get())
 
