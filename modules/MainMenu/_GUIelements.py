@@ -720,32 +720,33 @@ def calculateNTCPCommand(self, draw=True):
     for cohort in cohortList:
         cohort.options = self.options
 
-    if self.options.NTCPTimeDependent.get():
-        for patients in cohortList:
-            df = pd.read_csv(f"{patients.dataFolder}.csv", sep=None, engine="python")
-            patients.NTCPTimeDict = dict(zip(df.Name, df.Time))
-    
-    if self.options.NTCPcalculation.get() == "Logit":
-        for patients in cohortList:
-            patients.calculateDpercent(self.options.NTCPcalculationDpercent.get())
-
-    if self.options.optimizationScheme.get() == "GradientDescent":
-        for patients in cohortList:
-            self.log(f"Performing {self.options.optimizationScheme.get()} ({self.options.optimizationMetric.get()}) optimization on cohort: {patients.cohort}.")
-
-            res = patients.doGradientOptimization(self.progress)
-            
-            patients.bestParameters = res.x
-            self.log("\n".join([f"{k}={v}" for k,v in list(res.items())]))
+    if not primaryCohort.didBootstrap: # Don't recalculate after bootstrap (= scrap pivot correction)
+        if self.options.NTCPTimeDependent.get():
+            for patients in cohortList:
+                df = pd.read_csv(f"{patients.dataFolder}.csv", sep=None, engine="python")
+                patients.NTCPTimeDict = dict(zip(df.Name, df.Time))
         
-    elif self.options.optimizationScheme.get() == "MatrixMinimization":
-        for patients in cohortList:
-            self.log("Calculating toxicity array with matrix size {self.options.matrixSize.get()}")
-            res = patients.doMatrixMinimization(self.progress)
+        if self.options.NTCPcalculation.get() == "Logit":
+            for patients in cohortList:
+                patients.calculateDpercent(self.options.NTCPcalculationDpercent.get())
+
+        if self.options.optimizationScheme.get() == "GradientDescent":
+            for patients in cohortList:
+                self.log(f"Performing {self.options.optimizationScheme.get()} ({self.options.optimizationMetric.get()}) optimization on cohort: {patients.cohort}.")
+
+                res = patients.doGradientOptimization(self.progress)
+                
+                patients.bestParameters = res.x
+                self.log("\n".join([f"{k}={v}" for k,v in list(res.items())]))
             
-            patients.bestParameters = res.x
-            self.log("\n".join([f"{k}={v}" for k,v in list(res.items())]))
-    
+        elif self.options.optimizationScheme.get() == "MatrixMinimization":
+            for patients in cohortList:
+                self.log("Calculating toxicity array with matrix size {self.options.matrixSize.get()}")
+                res = patients.doMatrixMinimization(self.progress)
+                
+                patients.bestParameters = res.x
+                self.log("\n".join([f"{k}={v}" for k,v in list(res.items())]))
+        
     if draw:
         plt.figure(figsize=(10,6))
         self.style1 = ["darkred", "darkblue", "k"] * 100
