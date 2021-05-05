@@ -11,6 +11,8 @@ class Options():
         self.mGy = 0.001
         self.cc = 1
 
+        self.didBootstrap = False
+
         self.DVHFileType = StringVar(value="ECLIPSE")  # ['simple', 'ECLIPSE', 'RayStation']
         self.NTCPcalculation = StringVar(value="Logit")  # ['LKB', 'Logit']
         self.NTCPcalculationDpercent = DoubleVar(value=20)  # [0 -> 100]

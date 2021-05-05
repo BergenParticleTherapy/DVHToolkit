@@ -188,5 +188,6 @@ def calculateLKBuncert(self):
         patients.pSpace.printResults(self.log)
         patients.bestParameters = patients.pSpace.getParameters()
         patients.pSpace.plotResults()
+        self.options.didBootstrap = True
 
     plt.show()

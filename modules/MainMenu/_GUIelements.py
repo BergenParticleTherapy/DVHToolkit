@@ -720,7 +720,7 @@ def calculateNTCPCommand(self, draw=True):
     for cohort in cohortList:
         cohort.options = self.options
 
-    if not primaryCohort.didBootstrap: # Don't recalculate after bootstrap (= scrap pivot correction)
+    if not self.options.didBootstrap: # Don't recalculate after bootstrap (= scrap pivot correction)
         if self.options.NTCPTimeDependent.get():
             for patients in cohortList:
                 df = pd.read_csv(f"{patients.dataFolder}.csv", sep=None, engine="python")
