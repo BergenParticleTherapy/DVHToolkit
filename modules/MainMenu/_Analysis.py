@@ -207,9 +207,13 @@ def calculateAggregatedDVH(self):
                     cohortDVH[cohort] = pd.DataFrame({"Dose": patient.dvh["Dose"], f"Volume_{name}": patient.dvh["Volume"]})
                     cohortDVH[cohort].set_index("Dose", inplace=True)
                 else:
+                    # newDVH gets very very large
                     newDVH = pd.DataFrame({"Dose": patient.dvh["Dose"], f"Volume_{name}": patient.dvh["Volume"]})
+                    print(newDVH)
                     newDVH.set_index("Dose", inplace=True)
                     cohortDVH[cohort] = cohortDVH[cohort].merge(newDVH, how="outer", right_index=True, left_index=True)
+
+                print(name, len(cohortDVH[cohort]))
 
             for cohort in cohorts:
                 cohortDVH[cohort] = cohortDVH[cohort].interpolate(method='index', limit_direction='backward', limit=100).fillna(0)
@@ -248,7 +252,10 @@ def calculateAggregatedDVH(self):
                     cohortDVH[cohort] = pd.DataFrame({"Dose": doses[cohort]["Dose"]})
                     cohortDVH[cohort].set_index("Dose", inplace=True)
 
+                print("cohortDVH[cohort]:", cohortDVH[cohort])
+
                 newDVH = pd.DataFrame({"Dose": patient.dvh["Dose"], f"Volume_{name}": patient.dvh["Volume"]})
+                print("newDVH", newDVH)
                 newDVH.set_index("Dose", inplace=True)
                 cohortDVH[cohort] = cohortDVH[cohort].merge(newDVH, how="left", on="Dose")
 
@@ -356,6 +363,7 @@ def calculateAggregatedDVH(self):
         structures = sorted(set(structures_sorted), key=structures_sorted.index)
 
         styleIdx = {k:idx for idx,k in enumerate(plans)}
+        print(styleIdx)
         stylesToUse = {'solid': "-", 'dotted': 'dotted', 'dashed': (0,(5,5)), 'dashdotted': (0,(3,5,1,5,1,5)),
                        'loosely dotted': (0, (1, 10)), 'loosely dashdotted': (0, (3, 10, 1, 10)), 'loosely dashed': (0, (5, 10))}
         style = list(stylesToUse.values())

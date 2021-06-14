@@ -124,6 +124,10 @@
 # -> Also, a dict p is given to the basinjumping error function to ensure constancy of fixed parameters
 # These changes were mitigated everywhere ... I hope
 
+# Changelog version 1.71
+# Fixed loading of some Raystation files where there were multiple 0-volume lines in the beginning of file
+# -> When aggregating several of these the matrix size exploded
+
 import sys
 from tkinter import *
 from modules import MainMenu

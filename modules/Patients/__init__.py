@@ -149,7 +149,8 @@ class Patients:
 
     def loadPatientsECLIPSE(self, progress):
         def match(a, b):
-            a += "$"  # Don't match end-of-lines
+            # Don't match end-of-strings
+            a = "|".join([k + "$" for k in a.split("|")])
             a = a.replace("*", ".*")  # Use regex type wildcard
             return re.match(a, b)
 
@@ -350,7 +351,8 @@ class Patients:
 
     def loadPatientsRayStation(self, progress):
         def match(a, b):
-            a += "$"  # Don't match end-of-lines
+            # Don't match end-of-strings
+            a = "|".join([k + "$" for k in a.split("|")])
             a = a.replace("*", ".*")  # Use regex type wildcard
             return re.match(a, b)
 
@@ -423,7 +425,6 @@ class Patients:
 
                 for structure in structures:
                     if match(self.options.structureToUse.get(), structure[0]):
-
                         if self.options.autodetectDVHHeader.get():
                             if len(firstDoseLine) == 2:
                                 if firstDoseLine[0] == 0:
@@ -460,6 +461,9 @@ class Patients:
                         dvh["Volume"] = dvh["Volume"] * 100 / maxVolume
 
                         dvh = dvh[dvh["Volume"] > 0]
+
+                        # remove duplicate dose = 0 rows FROM top
+                        dvh = dvh.drop_duplicates(subset="Dose", keep="last")
 
                         patient = Patient(dvh)
                         if self.options.loadToxFromFilename.get():
