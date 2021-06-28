@@ -82,6 +82,8 @@ class Options():
         self.NTCPBoundLower = DoubleVar(value=0)
         self.NTCPBoundUpper = DoubleVar(value=0)
 
+        self.nR2partitions = IntVar(value=8)
+
         self.dvhPlotUseToxAsColor = IntVar(value=0)
         self.dvhPlotLegendMarker = StringVar(value="structureName")  # ["structureName", "folderName", "planName"]
         self.dvhPlotLegendSize = DoubleVar(value=14)
@@ -111,7 +113,8 @@ class Options():
                      "dvhPlotSeparatePlots": self.dvhPlotSeparatePlots, "dvhPlotsSaveFigs": self.dvhPlotsSaveFigs,
                      "dvhPlotLegendSize": self.dvhPlotLegendSize, "makeDifferentialCI": self.makeDifferentialCI,
                      "useNTCPcc": self.useNTCPcc, "nSet": self.nSet, "NTCPBoundWeight": self.NTCPBoundWeight,
-                     "NTCPBoundUpper": self.NTCPBoundUpper, "NTCPBoundLower": self.NTCPBoundLower, "nGrid": self.nGrid}
+                     "NTCPBoundUpper": self.NTCPBoundUpper, "NTCPBoundLower": self.NTCPBoundLower, "nGrid": self.nGrid,
+                     "nR2partitions": self.nR2partitions}
 
     def loadOptions(self):
         read = False
@@ -128,6 +131,8 @@ class Options():
 
                         if var in list(self.vars.keys()):
                             self.vars[var].set(value)
+
+        self.NTCPBoundWeight.set(0)
         return read
 
     def saveOptions(self):

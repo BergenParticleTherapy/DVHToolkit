@@ -194,8 +194,8 @@ class MainMenu(Frame):
         self.buttonCalculateDVH = Button(self.bottomContainer1, text="Save DVH values (C)", command=self.calculateDVHCommand, width=self.button_width, state=DISABLED)
         self.buttonAggregateDVH = Button(self.bottomContainer1, text="Aggregate DVH plots (A)", command=self.aggregateDVHCommand, width=self.button_width, state=DISABLED)
         self.buttonCalculateNTCP = Button(self.bottomContainer2, text="Calculate NTCP model (N)", command=self.calculateNTCPWindow, width=self.button_width, state=DISABLED)
-        self.buttonLKBuncert = Button(self.bottomContainer2, text="Calculate confidence intervals (B)", command=self.calculateBootstrapWindow, width=self.button_width, state=DISABLED)
-        self.buttonCalculateAUROC = Button(self.bottomContainer2, text="Calculate AUROC (S)", command=self.calculateAUROCCommand, width=self.button_width, state=DISABLED)
+        self.buttonLKBuncert = Button(self.bottomContainer2, text="Perform Bootstrap analysis (B)", command=self.calculateBootstrapWindow, width=self.button_width, state=DISABLED)
+        self.buttonCalculateAUROC = Button(self.bottomContainer2, text="NTCP validation (V)", command=self.openDataValidationWindow, width=self.button_width, state=DISABLED)
         self.buttonQuit = Button(self.bottomContainer2, text="Exit (Esc)", command=self.myQuit, width=self.button_width)
 
         self.parent.bind("g", lambda event=None: self.buttonCalculateGEUD.invoke())
@@ -204,7 +204,7 @@ class MainMenu(Frame):
         self.parent.bind("a", lambda event=None: self.buttonAggregateDVH.invoke())
         self.parent.bind("n", lambda event=None: self.buttonCalculateNTCP.invoke())
         self.parent.bind("b", lambda event=None: self.buttonLKBuncert.invoke())
-        self.parent.bind("s", lambda event=None: self.buttonCalculateAUROC.invoke())
+        self.parent.bind("v", lambda event=None: self.buttonCalculateAUROC.invoke())
         self.parent.bind("h", lambda event=None: self.buttonShowGEUDvsN.invoke())
         self.parent.bind("<Escape>", lambda event=None: self.buttonQuit.invoke())
 
@@ -222,13 +222,14 @@ class MainMenu(Frame):
     from ._GUIelements import chooseStructureCommand, calculateGEUDCommand, toxLimitChange, toxFromFilenameCommand
     from ._GUIelements import customDVHHeaderCommand, selectDVHFileTypeCommand, showDVHCommand, showDVHPlotCommand
     from ._GUIelements import bootstrapCorrectionMethodCommand, calculateNTCPCommand, NTCPcalculationCommand
-    from ._GUIelements import calculateAUROCCommand, calculateDVHCommand, cancelCalculateDVHvalues, aggregateDVHCommand
+    from ._GUIelements import openDataValidationWindow, calculateDVHCommand, cancelCalculateDVHvalues, aggregateDVHCommand
     from ._GUIelements import showGEUDvsN, switchNto, switchMto, switchTD50to, changeNamingCommand, calculateNewNamesCommand
     from ._GUIelements import changeNamingQuitCommand, changeNamingQuitAndSaveCommand, drawPlanAndStructureNames
     from ._GUIelements import customAggregatedDVHCommand, cancelCustomAggregateDVHCommand, matchCustomAggregateDVHCommand
     from ._GUIelements import saveCustomAggregateDVHCommand, packCustomAggregateDVHCommand, calculateNTCPWindow, calculateNTCPWindowCancel, switchToNTCPcc
     from ._GUIelements import calculateBootstrapWindow, calculateBootstrapWindowCancel, autodetectDVHHeaderCommand
-    from ._GUIelements import calculateGEUDWindow, cancelCalculateGEUDCommand, resetIdx
+    from ._GUIelements import calculateGEUDWindow, cancelCalculateGEUDCommand, resetIdx, calculateAUROCCommand
+    from ._GUIelements import calculateR2, cancelDataValidationWindow
 
     from ._Analysis import calculateDVHvalues, calculateAggregatedDVH
     from ._NTCPbootstrap import calculateLKBuncert

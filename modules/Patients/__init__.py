@@ -85,7 +85,7 @@ class Patients:
                 self.idx['lambda'] -= 1
                 self.idx['gamma'] -= 1
 
-            if self.options.fixLamda.get():
+            if self.options.fixLambda.get():
                 self.idx['gamma'] -= 1
 
     def setDataFolder(self, folder):

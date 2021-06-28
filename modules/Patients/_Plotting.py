@@ -9,7 +9,7 @@ from tkinter import ttk
 from ..Tools import *
 
 
-def drawSigmoid(self, log, style1, style2):
+def drawSigmoid(self, log, style1, style2, doR2binning=False):
     """Plot the patient outcomes vs sigmoid probability from the best parameter set."""
 
     D5_lower = None
@@ -83,7 +83,6 @@ def drawSigmoid(self, log, style1, style2):
 
     px = np.zeros(size)
     py = np.zeros(size)
-    ps = np.zeros(size)
 
     idx = 0
 
@@ -101,8 +100,49 @@ def drawSigmoid(self, log, style1, style2):
     style1 = style1.pop(0)
     style2 = style2.pop(0)
 
+    if doR2binning:
+        px_bin = np.linspace(np.min(px), np.max(px), self.options.nR2partitions.get())
+        px_delta = px_bin[1] - px_bin[0]
+        py_bin_yes = np.zeros(self.options.nR2partitions.get())
+        py_bin_no = np.zeros(self.options.nR2partitions.get())
+
+        print("pybin_yes", py_bin_yes)
+        print("px_bin", px_bin)
+
+        for i in range(idx):
+            # 1) locate px_bin
+            # 2) populate yes/no
+            # Is it possible to find the approximate error here by bootstrapping?
+            dose_bin = np.searchsorted(px_bin, px[i]) - 1
+            if py[i] > 0.5:  # to account for time dependent NTCP
+                py_bin_yes[dose_bin] += 1
+            else:
+                py_bin_no[dose_bin] += 1
+
+        py_bin_frac = [py_bin_yes[i] / (py_bin_no[i] + py_bin_yes[i]) for i in range(self.options.nR2partitions.get())]
+        if self.options.NTCPcalculation.get() == "LKB":
+            px_ntcp = np.fromiter([HPM((k - TD50) / (m * TD50)) for k in px_bin], float)
+            px_mean_ntcp = np.fromiter([HPM((k - TD50) / (m * TD50)) for k in px_bin[:-1] + px_delta / 2], float)
+        else:
+            px_ntcp = np.fromiter([1 - 1 / (1 + exp(a_ + b_ * k)) for k in px_bin], float)
+            px_mean_ntcp = np.fromiter([1 - 1 / (1 + exp(a_ + b_ * k)) for k in px_bin[:-1] + px_delta / 2], float)
+
+        py_bin_frac_min = px_ntcp[:-1]
+        py_bin_frac_max = px_ntcp[1:]
+
+        yerr_high = py_bin_frac_max - px_mean_ntcp
+        yerr_low = px_mean_ntcp - py_bin_frac_min
+
     plt.plot(x, y, "-", color=style1, zorder=15, linewidth=3, label=f"{self.cohort}")
-    plt.plot(px, py, "o", color=style2, zorder=0)
+    if not doR2binning:
+        plt.plot(px, py, "o", color=style2, zorder=0)
+    else:
+        plt.errorbar(px_bin[:-1] + px_delta / 2, py_bin_frac[:-1], fmt='ko', yerr=(yerr_low, yerr_high), color=style2, capsize=1)
+
+        for i in range(self.options.nR2partitions.get()):
+            frac_yes = py_bin_yes[i]
+            frac_no = py_bin_no[i]
+            plt.text(px_bin[i] + px_delta / 2, py_bin_frac[i] + 0.2, f"{frac_yes}/{frac_no}")
 
     if self.options.NTCPBoundWeight.get():
         weight = self.options.NTCPBoundWeight.get()
@@ -118,6 +158,8 @@ def drawSigmoid(self, log, style1, style2):
                          alpha=0.3, zorder=10)  # label=f"{self.options.confidenceIntervalPercent.get():.0f}% confidence interval")
 
     plt.ylim([-0.1, 1.1])
+    plt.xlim(0, np.max(px) * 1.2)
+
     Dlabel = self.options.useNTCPcc.get() and "cc" or "%"
     CIstr = self.pSpace and f" with {self.options.confidenceIntervalPercent.get()}% CI" or ""
     if self.options.NTCPcalculation.get() == "LKB":

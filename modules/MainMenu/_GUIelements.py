@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import matplotlib.colors as mcolors
 from functools import partial
+import math
 
 from tkinter import *
 from tkinter import ttk
@@ -216,7 +217,98 @@ def calculateGEUDWindow(self):
     self.window.bind('<Escape>', lambda event=None: b2.invoke())
 
 
-def calculateGEUDCommand(self):
+def openDataValidationWindow(self):
+    """ Available analyses:
+        - AUROC
+
+        Wanted analyses:
+        - Nagelkerke's R2
+        - Brier score
+        - Hosmer-Lemeshow-test
+        - Model optimism"""
+
+    self.window = Toplevel(self)
+    self.window.title("Data validation tests")
+    self.window.focus()
+
+    self.styleContainer1 = Frame(self.window)
+    self.styleContainer1.pack(anchor=W)
+
+    Label(self.styleContainer1, text="Dose partitions for R^2 calculation").pack(side=LEFT)
+    Entry(self.styleContainer1, textvariable=self.options.nR2partitions, width=5).pack(side=LEFT, anchor=W)
+
+    self.buttonContainer = Frame(self.window)
+    self.buttonContainer.pack(anchor=W, fill=X, expand=1)
+   
+    b1 = Button(self.buttonContainer, text="AUROC", command=self.calculateAUROCCommand, width=self.button_width)
+    b1.pack(side=LEFT, anchor=W)
+
+    b2 = Button(self.buttonContainer, text="R2 test", command=self.calculateR2, width=self.button_width)
+    b2.pack(side=LEFT, anchor=W)
+
+    bx = Button(self.buttonContainer, text="Close window", command=self.cancelDataValidationWindow, width=self.button_width)
+    bx.pack(side=LEFT, anchor=W)
+
+    #self.window.bind('<Return>', lambda event=None: b1.invoke())
+    self.window.bind('<Escape>', lambda event=None: bx.invoke())
+
+
+def calculateR2(self):
+    plt.figure(figsize=(10,6))
+    """
+    self.style1 = ["darkred", "darkblue", "k"] * 100
+    self.style2 = ["r", "b", "k"] * 100
+    for patients in self.patients.values():
+        patients.drawSigmoid(self.log, self.style1, self.style2, True)
+        plt.show()
+    """
+
+    # Calculate LL0 (average predictions) and LL1 (model LLH)
+
+    mean_y = n = LL0 = LL1 = 0
+
+    for cohort_, patients in self.patients.items():
+        for name, patient in patients.patients.items():
+            tox = patient.getTox() >= self.options.toxLimit.get()
+            mean_y += tox
+            n += 1
+
+    mean_y /= n
+
+    print("Mean(y) is", mean_y)
+
+    for cohort_, patients in self.patients.items():
+        for name, patient in patients.patients.items():
+            tox = patient.getTox() >= self.options.toxLimit.get()
+
+            if self.options.NTCPcalculation.get() == "LKB":
+                n, m, TD50 = patients.bestParameters
+                NTCP = HPM((patient.getGEUD(n) - TD50) / (m * TD50))
+
+                LL1 += tox * math.log(max(NTCP, 1e-323)) + (1-tox) * math.log(max(1 - NTCP, 1e-323))
+                LL0 += tox * math.log(max(mean_y, 1e-323)) + (1-tox) * math.log(max(1 - mean_y, 1e-323))
+
+            elif self.options.NTCPcalculation.get() == "Logit":
+                a, b = patients.bestParameters
+                NTCP = 1 - 1 / (1 + exp(a + b * patient.getDpercent()))
+
+                LL1 += tox * math.log(max(NTCP, 1e-323)) + (1-tox) * math.log(max(1 - NTCP, 1e-323))
+                LL0 += tox * math.log(max(mean_y, 1e-323)) + (1-tox) * math.log(max(1 - mean_y, 1e-323))
+
+    print("LL1 is", LL1, "and LL0 is", LL0)
+
+    LR = -2 * (LL0 - LL1)
+
+    print("LR is", LR)
+
+    R2 = (1 - math.exp(-LR)) / (1 - math.exp(-2*LL0))
+
+    print("R2 = ", 1-math.exp(-LR), "/", 1-math.exp(-2*LL0))
+
+    print("-> Nagelkerke's R2 is", R2)
+
+
+def calculateGEUDCommand(self): 
     self.window.destroy()
 
     for k,v in list(self.patients.items()):
@@ -230,6 +322,9 @@ def calculateGEUDCommand(self):
     self.buttonCalculateDVH['state'] = 'normal'
 
 def cancelCalculateGEUDCommand(self):
+    self.window.destroy()
+
+def cancelDataValidationWindow(self):
     self.window.destroy()
 
 def toxLimitChange(self):
