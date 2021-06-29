@@ -255,25 +255,24 @@ def openDataValidationWindow(self):
 
 def calculateR2(self):
     plt.figure(figsize=(10,6))
-    """
+    
     self.style1 = ["darkred", "darkblue", "k"] * 100
     self.style2 = ["r", "b", "k"] * 100
     for patients in self.patients.values():
         patients.drawSigmoid(self.log, self.style1, self.style2, True)
         plt.show()
-    """
 
     # Calculate LL0 (average predictions) and LL1 (model LLH)
-
-    mean_y = n = LL0 = LL1 = 0
+    # TO THIS ON THE REDUCED DATASET
+    mean_y = model_n = LL0 = LL1 = 0
 
     for cohort_, patients in self.patients.items():
         for name, patient in patients.patients.items():
             tox = patient.getTox() >= self.options.toxLimit.get()
             mean_y += tox
-            n += 1
+            model_n += 1
 
-    mean_y /= n
+    mean_y /= model_n
 
     print("Mean(y) is", mean_y)
 
@@ -282,8 +281,8 @@ def calculateR2(self):
             tox = patient.getTox() >= self.options.toxLimit.get()
 
             if self.options.NTCPcalculation.get() == "LKB":
-                n, m, TD50 = patients.bestParameters
-                NTCP = HPM((patient.getGEUD(n) - TD50) / (m * TD50))
+                model_n, m, TD50 = patients.bestParameters
+                NTCP = HPM((patient.getGEUD(model_n) - TD50) / (m * TD50))
 
                 LL1 += tox * math.log(max(NTCP, 1e-323)) + (1-tox) * math.log(max(1 - NTCP, 1e-323))
                 LL0 += tox * math.log(max(mean_y, 1e-323)) + (1-tox) * math.log(max(1 - mean_y, 1e-323))
@@ -295,18 +294,16 @@ def calculateR2(self):
                 LL1 += tox * math.log(max(NTCP, 1e-323)) + (1-tox) * math.log(max(1 - NTCP, 1e-323))
                 LL0 += tox * math.log(max(mean_y, 1e-323)) + (1-tox) * math.log(max(1 - mean_y, 1e-323))
 
-    print("LL1 is", LL1, "and LL0 is", LL0)
 
-    LR = -2 * (LL0 - LL1)
+        model_m = self.options.NTCPcalculation.get() == "LKB" and 3 or 2
+        nagelkerke = (1 - math.exp(-2*(LL1-LL0)/model_n)) / (1 - math.exp(2*LL0/model_n))
+        mcfadden = 1 - LL1/LL0
+        horowitz = 1 - (LL1 - model_m/2) / LL0
 
-    print("LR is", LR)
-
-    R2 = (1 - math.exp(-LR)) / (1 - math.exp(-2*LL0))
-
-    print("R2 = ", 1-math.exp(-LR), "/", 1-math.exp(-2*LL0))
-
-    print("-> Nagelkerke's R2 is", R2)
-
+        print("Different pseudo R2 statistics (with full dataset):")
+        print("-> Nagelkerke =", nagelkerke)
+        print("-> McFadden =", mcfadden)
+        print("-> Horwitz =", horowitz)
 
 def calculateGEUDCommand(self): 
     self.window.destroy()
