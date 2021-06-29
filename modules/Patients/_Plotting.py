@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from math import *
+import math
 
 from tkinter import *
 from tkinter import ttk
@@ -56,11 +56,11 @@ def drawSigmoid(self, log, style1, style2, doR2binning=False):
             D50_upper = x[np.argmin(abs(yMinEmpirical - 0.5))]
 
     else:
-        y = np.fromiter([1 - 1 / (1 + exp(a + b * k)) for k in x], float)
+        y = np.fromiter([1 - 1 / (1 + math.exp(a + b * k)) for k in x], float)
         if self.pSpace:
             for a_, b_, TD50_ in zip(self.pSpace.parameterSpace['a'], self.pSpace.parameterSpace['b'], self.pSpace.parameterSpace['TD50']):
                 if self.pSpace.CI['TD50'][0] < TD50_ < self.pSpace.CI['TD50'][1]:
-                    yExtra.append(np.fromiter([1 - 1 / (1 + exp(a_ + b_ * k)) for k in x], float))
+                    yExtra.append(np.fromiter([1 - 1 / (1 + math.exp(a_ + b_ * k)) for k in x], float))
 
             yMaxEmpirical = np.zeros(len(x))
             yMinEmpirical = np.zeros(len(x))
@@ -94,7 +94,7 @@ def drawSigmoid(self, log, style1, style2, doR2binning=False):
         py[idx] = patient.getTox() >= self.options.toxLimit.get()
         nn = name.split("_")[0].split("tox")[0]
         if self.NTCPTimeDict:
-            py[idx] *= np.exp(-(0.38 * self.NTCPTimeDict[nn] / 12)**1.37)
+            py[idx] *= np.math.exp(-(0.38 * self.NTCPTimeDict[nn] / 12)**1.37)
         idx += 1
 
     style1 = style1.pop(0)
@@ -119,13 +119,19 @@ def drawSigmoid(self, log, style1, style2, doR2binning=False):
             else:
                 py_bin_no[dose_bin] += 1
 
-        py_bin_frac = [py_bin_yes[i] / (py_bin_no[i] + py_bin_yes[i]) for i in range(self.options.nR2partitions.get())]
+        py_bin_frac = np.zeros(self.options.nR2partitions.get())
+        for i in range(self.options.nR2partitions.get()):
+            if py_bin_no[i] + py_bin_yes[i] > 0:
+                py_bin_frac[i] = py_bin_yes[i] / (py_bin_no[i] + py_bin_yes[i])
+            else:
+                py_bin_frac[i] = 0
+
         if self.options.NTCPcalculation.get() == "LKB":
             px_ntcp = np.fromiter([HPM((k - TD50) / (m * TD50)) for k in px_bin], float)
             px_mean_ntcp = np.fromiter([HPM((k - TD50) / (m * TD50)) for k in px_bin[:-1] + px_delta / 2], float)
         else:
-            px_ntcp = np.fromiter([1 - 1 / (1 + exp(a_ + b_ * k)) for k in px_bin], float)
-            px_mean_ntcp = np.fromiter([1 - 1 / (1 + exp(a_ + b_ * k)) for k in px_bin[:-1] + px_delta / 2], float)
+            px_ntcp = np.fromiter([1 - 1 / (1 + math.exp(a_ + b_ * k)) for k in px_bin], float)
+            px_mean_ntcp = np.fromiter([1 - 1 / (1 + math.exp(a_ + b_ * k)) for k in px_bin[:-1] + px_delta / 2], float)
 
         py_bin_frac_min = px_ntcp[:-1]
         py_bin_frac_max = px_ntcp[1:]
@@ -133,16 +139,50 @@ def drawSigmoid(self, log, style1, style2, doR2binning=False):
         yerr_high = py_bin_frac_max - px_mean_ntcp
         yerr_low = px_mean_ntcp - py_bin_frac_min
 
+        # Calculate LL0 (average predictions) and LL1 (model LLH)
+        # TO THIS ON THE REDUCED DATASET
+        mean_y = model_n = LL0 = LL1 = 0
+
+        for i in range(self.options.nR2partitions.get()):
+            if py_bin_yes[i] + py_bin_no[i] > 0:
+                mean_y += py_bin_yes[i] / (py_bin_yes[i] + py_bin_no[i])
+                model_n += 1
+
+        mean_y /= model_n
+
+        mean_y = 0.667
+
+        print("Mean(y) is", mean_y) # should be 0.66 here?
+
+        for i in range(self.options.nR2partitions.get()-1):
+            if py_bin_yes[i] + py_bin_no[i] > 0:
+                tox = py_bin_yes[i] / (py_bin_yes[i] + py_bin_no[i])
+                LL1 += tox * math.log(px_mean_ntcp[i]) + (1-tox) * math.log(1 - px_mean_ntcp[i])
+                LL0 += tox * math.log(mean_y) + (1-tox) * math.log(1 - mean_y)
+
+        model_m = self.options.NTCPcalculation.get() == "LKB" and 3 or 2
+        nagelkerke = (1 - math.exp(-2*(LL1-LL0)/model_n)) / (1 - math.exp(2*LL0/model_n))
+        mcfadden = 1 - LL1/LL0
+        horowitz = 1 - (LL1 - model_m/2) / LL0
+
+        print("Different pseudo R2 statistics:")
+        print("-> Nagelkerke =", nagelkerke)
+        print("-> McFadden =", mcfadden)
+        print("-> Horwitz =", horowitz)
+
     plt.plot(x, y, "-", color=style1, zorder=15, linewidth=3, label=f"{self.cohort}")
     if not doR2binning:
         plt.plot(px, py, "o", color=style2, zorder=0)
     else:
-        plt.errorbar(px_bin[:-1] + px_delta / 2, py_bin_frac[:-1], fmt='ko', yerr=(yerr_low, yerr_high), color=style2, capsize=1)
+        plt.plot(px_bin[:-1] + px_delta / 2, py_bin_frac[:-1], "ko")
+        plt.errorbar(px_bin[:-1] + px_delta / 2, px_mean_ntcp, yerr=(yerr_low, yerr_high), ecolor='k', capsize=5, fmt='none')
 
+        """
         for i in range(self.options.nR2partitions.get()):
             frac_yes = py_bin_yes[i]
             frac_no = py_bin_no[i]
             plt.text(px_bin[i] + px_delta / 2, py_bin_frac[i] + 0.2, f"{frac_yes}/{frac_no}")
+        """
 
     if self.options.NTCPBoundWeight.get():
         weight = self.options.NTCPBoundWeight.get()

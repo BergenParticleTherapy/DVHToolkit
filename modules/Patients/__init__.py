@@ -537,6 +537,7 @@ class Patients:
                         for _ in range(self.options.skipRows.get()):
                             autodetectFile.readline()
                         line = autodetectFile.readline()
+                        line = line.replace('"', '')
 
                         firstDoseLine = [float(k) for k in line.split(sep)]
                         if len(firstDoseLine) == 2:
