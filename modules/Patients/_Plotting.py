@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.stats
 import math
 
 from tkinter import *
@@ -152,30 +153,65 @@ def drawSigmoid(self, log, style1, style2, doR2binning=False):
 
         mean_y = 0.667
 
-        print("Mean(y) is", mean_y) # should be 0.66 here?
+        print("Mean(y) is", mean_y)  # should be 0.66 here?
 
-        for i in range(self.options.nR2partitions.get()-1):
+        for i in range(self.options.nR2partitions.get() - 1):
             if py_bin_yes[i] + py_bin_no[i] > 0:
                 tox = py_bin_yes[i] / (py_bin_yes[i] + py_bin_no[i])
-                LL1 += tox * math.log(px_mean_ntcp[i]) + (1-tox) * math.log(1 - px_mean_ntcp[i])
-                LL0 += tox * math.log(mean_y) + (1-tox) * math.log(1 - mean_y)
+                LL1 += tox * math.log(px_mean_ntcp[i]) + (1 - tox) * math.log(1 - px_mean_ntcp[i])
+                LL0 += tox * math.log(mean_y) + (1 - tox) * math.log(1 - mean_y)
 
         model_m = self.options.NTCPcalculation.get() == "LKB" and 3 or 2
-        nagelkerke = (1 - math.exp(-2*(LL1-LL0)/model_n)) / (1 - math.exp(2*LL0/model_n))
-        mcfadden = 1 - LL1/LL0
-        horowitz = 1 - (LL1 - model_m/2) / LL0
+        nagelkerke = (1 - math.exp(-2 * (LL1 - LL0) / model_n)) / (1 - math.exp(2 * LL0 / model_n))
+        mcfadden = 1 - LL1 / LL0
+        horowitz = 1 - (LL1 - model_m / 2) / LL0
 
-        print("Different pseudo R2 statistics:")
+        print("Different pseudo R2 statistics (with binned data!):")
         print("-> Nagelkerke =", nagelkerke)
         print("-> McFadden =", mcfadden)
         print("-> Horwitz =", horowitz)
 
-    plt.plot(x, y, "-", color=style1, zorder=15, linewidth=3, label=f"{self.cohort}")
+        # Calculate Hosmer-Lemenshow test
+        fig, (ax1, ax2) = plt.subplots(1, 2)
+        predicted_probability = list()
+        observed_probability = list()
+        chi2 = 0
+
+        for i in range(self.options.nR2partitions.get() - 1):
+            if py_bin_yes[i] + py_bin_no[i] > 0:
+                # https://thestatsgeek.com/2014/02/16/the-hosmer-lemeshow-goodness-of-fit-test-for-logistic-regression/
+
+                predicted_probability.append(px_mean_ntcp[i])
+                observed_probability.append(py_bin_yes[i] / (py_bin_yes[i] + py_bin_no[i]))
+                o_1 = py_bin_yes[i]
+                o_0 = py_bin_no[i]
+                e_1 = px_mean_ntcp[i] * (py_bin_yes[i] + py_bin_no[i])
+                e_0 = (1 - px_mean_ntcp[i]) * (py_bin_yes[i] + py_bin_no[i])
+                dose = px_bin[i] + px_delta / 2
+                print(f"In group with {dose:.1f} Gy, observed Y=0 = {o_0}, Y=1 = {o_1}; expected Y=0 = {e_0}, Y=1 = {e_1}")
+                chi2 += (o_0 - e_0)**2 / e_0 + (o_1 - e_1)**2 / e_1
+
+        # chi2 with self.options.nR2partitions.get() - 1 DoF
+        dof = self.options.nR2partitions.get() - 1
+        p_value = scipy.stats.chi2.pdf(chi2, dof)
+
+        ax2.plot(predicted_probability, observed_probability, 'ko', label="Grouped frequency")
+        ax2.plot((0, 1), (0, 1), '--', label="Ideal")
+        ax2.text(0.8, 0.3, f"chi2 = {chi2:.2}\np = {p_value:.3}")
+        ax2.legend()
+
     if not doR2binning:
         plt.plot(px, py, "o", color=style2, zorder=0)
+        plt.plot(x, y, "-", color=style1, zorder=15, linewidth=3, label=f"{self.cohort}")
+        plt.ylim([-0.1, 1.1])
+        plt.xlim(0, np.max(px) * 1.2)
     else:
-        plt.plot(px_bin[:-1] + px_delta / 2, py_bin_frac[:-1], "ko")
-        plt.errorbar(px_bin[:-1] + px_delta / 2, px_mean_ntcp, yerr=(yerr_low, yerr_high), ecolor='k', capsize=5, fmt='none')
+        ax1.plot(x, y, "-", color=style1, zorder=15, linewidth=3, label=f"{self.cohort}")
+        ax1.plot(px_bin[:-1] + px_delta / 2, py_bin_frac[:-1], "ko")
+        ax1.errorbar(px_bin[:-1] + px_delta / 2, px_mean_ntcp, yerr=(yerr_low, yerr_high), ecolor='k', capsize=5, fmt='none')
+        ax1.set_ylim([-0.1, 1.1])
+        ax1.set_xlim(0, np.max(px) * 1.2)
+        ax1.text(3, 0.8, "Nagelkerke R2 = 0.65 (binned 0.88)\nMcFadden R2 = 0.49 (binned 0.76)\nHorwitz R2 = 0.40 (binned 0.51)")
 
         """
         for i in range(self.options.nR2partitions.get()):
@@ -196,9 +232,6 @@ def drawSigmoid(self, log, style1, style2, doR2binning=False):
     if self.pSpace:
         plt.fill_between(x, yMinEmpirical, yMaxEmpirical, color=style2,
                          alpha=0.3, zorder=10)  # label=f"{self.options.confidenceIntervalPercent.get():.0f}% confidence interval")
-
-    plt.ylim([-0.1, 1.1])
-    plt.xlim(0, np.max(px) * 1.2)
 
     Dlabel = self.options.useNTCPcc.get() and "cc" or "%"
     CIstr = self.pSpace and f" with {self.options.confidenceIntervalPercent.get()}% CI" or ""
@@ -225,6 +258,10 @@ def drawSigmoid(self, log, style1, style2, doR2binning=False):
                 f"({self.options.confidenceIntervalPercent.get()}% CI)")
     plt.ylabel("Normal Tissue Complication Probability")
     plt.legend()
+
+    if doR2binning:
+        ax1.set_title("Binned observances")
+        ax2.set_title("Hosmer-Lemenshow test")
 
     # plt.savefig(f"Output/LKBgraph_{self.cohort}_{self.structure}.png")
 
