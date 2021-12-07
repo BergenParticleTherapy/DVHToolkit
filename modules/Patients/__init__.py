@@ -18,6 +18,7 @@ class Patients:
         self.cohort = None
         self.NTCPTimeDict = None
         self.doseUnit = None
+        self.volumeFromEclipse = None
         self.options = options
 
         """
@@ -538,8 +539,10 @@ class Patients:
                             autodetectFile.readline()
                         line = autodetectFile.readline()
                         line = line.replace('"', '')
-
-                        firstDoseLine = [float(k) for k in line.split(sep)]
+                        line = line.replace('\n', '')
+                        if self.options.CSVStyle.get() == "commaSemicolon":
+                            line = line.replace(",", ".")
+                        firstDoseLine = [float(k) for k in line.split(sep) if k]
                         if len(firstDoseLine) == 2:
                             if firstDoseLine[0] == 0:
                                 headers = ["Dose", "Volume"]

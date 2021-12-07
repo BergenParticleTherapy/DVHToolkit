@@ -2,10 +2,42 @@ import random
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-from math import *
+import math
 from tkinter import *
 from ..Patients import *
 
+def calculatePseudoR2(patients, res, options):
+    mean_y = model_n = LL0 = LLH = 0
+    for name, patient in patients.items():
+        tox = patient.getTox() >= options.toxLimit.get()
+        mean_y += tox
+        model_n += 1
+    mean_y /= model_n
+
+    eps = 1e-10
+
+    for name, patient in patients.items():
+        if options.NTCPcalculation.get() == "LKB":
+            n, m, TD50 = res.x
+            NTCP = HPM((patient.getGEUD(n) - TD50) / (m * TD50))
+        else:
+            a, b = res.x
+            NTCP = 1 - 1 / (1 + math.exp(a + b * patient.getDpercent()))
+
+        tox = patient.getTox() >= options.toxLimit.get()
+        LL0 += tox * math.log(mean_y+eps) + (1-tox) * math.log(1 - mean_y + eps)
+        LLH += tox * math.log(NTCP + eps) + (1-tox) * math.log(1 - NTCP + eps)
+
+    try:
+        nagelkerke = (1 - math.exp(-2*(LLH-LL0)/model_n)) / (1 - math.exp(2*LL0/model_n))
+    except OverflowError as e:
+        print("Overflow Error: ", e)
+        print("LLH", LLH, "LL0", LL0, "model_n", model_n)
+        nagelkerke = 0
+
+    mcfadden = 1 - LLH/LL0
+
+    return {'Nagelkerke': nagelkerke, 'McFadden': mcfadden, 'LLH': LLH}
 
 def calculateLKBuncert(self):
     """Based on http://stacks.iop.org/1742-6596/489/i=1/a=012087?key=crossref.181b59106e0d253de74e704220e16c36.
@@ -63,6 +95,13 @@ def calculateLKBuncert(self):
         patients.calculateNTCP()
         patients.bestParameters = res.x
 
+        originalR2 = calculatePseudoR2(patients.patients, res, self.options)
+        patients.pSpace.addPointOriginalLLH(originalR2['LLH'])
+        patients.pSpace.addPointOriginalNagelkerke(originalR2['Nagelkerke'])
+        patients.pSpace.addPointOriginalMcFadden(originalR2['McFadden'])
+
+        print("Original McFadden is", originalR2['McFadden'])
+
     origIt = self.options.basinHoppingIterations.get()
     self.options.basinHoppingIterations.set(2)
     self.progress['maximum'] = nIterations * len(cohortList)
@@ -95,15 +134,27 @@ def calculateLKBuncert(self):
                     continue
 
                 patients.pSpace.addPoint(res.x)
-                patients.pSpace.addPointLLH(-res.fun)
+                
+                trainingR2 = calculatePseudoR2(patients.patients, res, self.options)
+                patients.pSpace.addPointTrainingLLH(trainingR2['LLH'])
+                patients.pSpace.addPointTrainingNagelkerke(trainingR2['Nagelkerke'])
+                patients.pSpace.addPointTrainingMcFadden(trainingR2['McFadden'])
 
                 patients.restoreTox()
+
+                testR2 = calculatePseudoR2(patients.patients, res, self.options)
+                patients.pSpace.addPointTestLLH(testR2['LLH'])
+                patients.pSpace.addPointTestNagelkerke(testR2['Nagelkerke'])
+                patients.pSpace.addPointTestMcFadden(testR2['McFadden'])
 
         elif self.options.confidenceIntervalMethod.get() == "NonParametricBootstrapping":
             patientZip = list()
             for patientName in patients.patients.keys():
                 patientZip.append((cohort, patientName))
             nPatients = len(patientZip)
+
+            ntcp_file = open("Output/bootstrapTestNTCP.csv", "w")
+            name_file = open("Output/bootstrapTestNames.csv", "w")
 
             for k in range(nIterations):
                 print(".", end="")
@@ -141,13 +192,33 @@ def calculateLKBuncert(self):
                 elif self.options.optimizationScheme.get() == "MatrixMinimization":
                     res = newPatientCohort.doMatrixMinimization(None)
 
+                trainingR2 = calculatePseudoR2(newPatientCohort.patients, res, self.options)
+                patients.pSpace.addPointTrainingLLH(trainingR2['LLH'])
+                patients.pSpace.addPointTrainingNagelkerke(trainingR2['Nagelkerke'])
+                patients.pSpace.addPointTrainingMcFadden(trainingR2['McFadden'])
+
+                # Write the NTCP values of all patients to new file
+                for name, patient in newPatientCohort.patients.items():
+                    NTCP = patient.getNTCP()
+                    ntcp_file.write(f"{NTCP:.3f},")
+                    name_file.write(f"{name},")
+                ntcp_file.write("\n")
+                name_file.write("\n")
+
                 del newPatientCohort
+
+                patients.pSpace.addPoint(res.x)
+
+                testR2 = calculatePseudoR2(patients.patients, res, self.options)
+                patients.pSpace.addPointTestLLH(testR2['LLH'])
+                patients.pSpace.addPointTestNagelkerke(testR2['Nagelkerke'])
+                patients.pSpace.addPointTestMcFadden(testR2['McFadden'])
 
                 if res.fun < -self.options.confidenceIntervalLikelihoodLimit.get():
                     continue
-
-                patients.pSpace.addPoint(res.x)
-                patients.pSpace.addPointLLH(-res.fun)
+            
+            ntcp_file.close()
+            name_file.close()
 
         elif self.options.confidenceIntervalMethod.get() == "ProfileLikelihood":
             res = patients.profileLikelihood()
@@ -179,7 +250,7 @@ def calculateLKBuncert(self):
         patients.pSpace.setBootstrapCorrectionMethod(self.options.bootstrapCorrectionMethod.get())
         patients.pSpace.calculateCI()
         patients.pSpace.applyPivot()
-        patients.pSpace.writeToFile()
+        patients.pSpace.writeToFile(patients.patients)
 
         self.log(f"\nFinished Confidence Interval tests for cohort {cohort} ({(time2-time1)/60:.1f} minutes).")
         self.log(f"{self.options.confidenceIntervalPercent.get()}% CI calculated as "

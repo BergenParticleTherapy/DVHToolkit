@@ -22,12 +22,24 @@ class ParameterSpace:
         for p in self.parameters.keys():
             self.parameterSpace[p] = np.zeros(nIterations)
 
-        self.LLH = np.zeros(nIterations)
+        self.originalLLH = np.zeros(nIterations)
+        self.originalNagelkerke = np.zeros(nIterations)
+        self.originalMcFadden = np.zeros(nIterations)
+
+        self.trainingLLH = np.zeros(nIterations)
+        self.trainingNagelkerke = np.zeros(nIterations)
+        self.trainingMcFadden = np.zeros(nIterations)
+
+        self.testLLH = np.zeros(nIterations)
+        self.testNagelkerke = np.zeros(nIterations)
+        self.testMcFadden = np.zeros(nIterations)
 
         self.CI = dict()
 
         self.idx = 0
-        self.idxLLH = 0
+        self.idxOriginalLLH = 0
+        self.idxTrainingLLH = 0
+        self.idxTestLLH = 0
         self.bootstrapCorrectionMethod = None
         self.log = log
         self.percentile = None
@@ -51,9 +63,35 @@ class ParameterSpace:
         self.log(string)
         print(string)
 
-    def addPointLLH(self, LLH):
-        self.LLH[self.idxLLH] = LLH
-        self.idxLLH += 1
+    def addPointOriginalLLH(self, LLH):
+        self.originalLLH[self.idxOriginalLLH] = LLH
+        self.idxOriginalLLH += 1
+
+    def addPointOriginalNagelkerke(self, nagelkerke): # ASSUME THIS ALWAYS HAPPENS AFTER LLH
+        self.originalNagelkerke[self.idxOriginalLLH-1] = nagelkerke
+
+    def addPointOriginalMcFadden(self, mcfadden):
+        self.originalMcFadden[self.idxOriginalLLH-1] = mcfadden
+
+    def addPointTrainingLLH(self, LLH):
+        self.trainingLLH[self.idxTrainingLLH] = LLH
+        self.idxTrainingLLH += 1
+
+    def addPointTrainingNagelkerke(self, nagelkerke): # ASSUME THIS ALWAYS HAPPENS AFTER LLH
+        self.trainingNagelkerke[self.idxTrainingLLH-1] = nagelkerke
+
+    def addPointTrainingMcFadden(self, mcfadden):
+        self.trainingMcFadden[self.idxTrainingLLH-1] = mcfadden
+
+    def addPointTestLLH(self, LLH):
+        self.testLLH[self.idxTestLLH] = LLH
+        self.idxTestLLH += 1
+
+    def addPointTestNagelkerke(self, nagelkerke): # ASSUME THIS ALWAYS HAPPENS AFTER LLH
+        self.testNagelkerke[self.idxTestLLH-1] = nagelkerke
+
+    def addPointTestMcFadden(self, mcfadden):
+        self.testMcFadden[self.idxTestLLH-1] = mcfadden
 
     def setParameters(self, paramDict):
         for k, v in paramDict.items():
@@ -103,7 +141,9 @@ class ParameterSpace:
         for p in self.parameters.keys():
             self.parameterSpace[p] = np.trim_zeros(self.parameterSpace[p])
 
-        self.LLH = np.trim_zeros(self.LLH)
+        self.originalLLH = np.trim_zeros(self.originalLLH)
+        self.trainingLLH = np.trim_zeros(self.trainingLLH)
+        self.testLLH = np.trim_zeros(self.testLLH)
 
     def setPercentile(self, percentile):
         self.percentile = percentile
@@ -228,23 +268,65 @@ class ParameterSpace:
             axs[idx].set_title(f"a vs b for {self.cohort}")
 
         idx += 1
-        axs[idx].hist(x=self.LLH, bins=50)
+        axs[idx].hist(x=self.originalLLH, bins=50)
         axs[idx].set_xlabel("Log Likelihood values")
         axs[idx].set_title(f"Log Likelihood for {self.cohort}")
 
-    def writeToFile(self):
+    def writeToFile(self, patients=None):
         with open(f"Output/bootstrapParameterSpace.csv", "w") as out:
             if self.model == "LKB":
-                out.write("cohort,n,m,TD50\n")
+                out.write("cohort,n,m,TD50,Original Nagelkerke R2,Original McFadden R2,Test Nagelkerke R2,Test McFadden R2,Training Nagelkerke R2,Training McFadden R2,")
+                for name, patient in list(patients.items()):
+                    out.write(f"NTCP {name} [%],")
+                for name, patient in list(patients.items()):
+                    out.write(f"gEUD {name} [%],")
+                out.write("\n")
+
+                assert self.idx == self.idxTestLLH == self.idxTrainingLLH
+                assert self.idxOriginalLLH == 1
+
+                originalPseudoR2Nagelkerke = self.testNagelkerke[0]
+                originalPseudoR2McFadden = self.testMcFadden[0]
+
                 for idx in range(len(self.parameterSpace['n'])):
                     n = self.parameterSpace['n'][idx]
                     m = self.parameterSpace['m'][idx]
                     TD50 = self.parameterSpace['TD50'][idx]
-                    out.write(f"{self.cohort},{n},{m},{TD50}\n")
+                    
+                    trainingPseudoR2Nagelkerke = self.trainingNagelkerke[idx]
+                    trainingPseudoR2McFadden = self.trainingMcFadden[idx]
+                    testPseudoR2Nagelkerke = self.testNagelkerke[idx]
+                    testPseudoR2McFadden = self.testMcFadden[idx]
+
+                    out.write(f"{self.cohort},{n:.4f},{m:.4f},{TD50:.3f},")
+                    out.write(f"{originalPseudoR2Nagelkerke:.4f}, {originalPseudoR2McFadden:.4f},")
+                    out.write(f"{testPseudoR2Nagelkerke:.4f}, {testPseudoR2McFadden:.4f},")
+                    out.write(f"{trainingPseudoR2Nagelkerke:.4f}, {trainingPseudoR2McFadden:.4f},")
+
+                    # Write out separate NTCP values + NagelKerke's R2
+                    for name, patient in list(patients.items()):
+                        gEUD = patient.getGEUD(n)
+                        NTCP = HPM((gEUD - TD50) / (m * TD50))
+                        NTCPpercent = NTCP * 100
+                        out.write(f"{NTCPpercent:.3f},")
+                    for name, patient in list(patients.items()):
+                        gEUD = patient.getGEUD(n)
+                        out.write(f"{gEUD:.2f},")
+                    out.write("\n")
+
             else:
-                out.write("cohort,a,b,TD50\n")
+                out.write("cohort,a,b,TD50,Original Nagelkerke R2,Original McFadden R2,Test Nagelkerke R2,Test McFadden R2,Training Nagelkerke R2,Training McFadden R2\n")
                 for idx in range(len(self.parameterSpace['a'])):
                     a = self.parameterSpace['a'][idx]
                     b = self.parameterSpace['b'][idx]
                     TD50 = self.parameterSpace['TD50'][idx]
-                    out.write(f"{self.cohort},{a},{b},{TD50}\n")
+
+                    trainingPseudoR2Nagelkerke = self.trainingNagelkerke[idx]
+                    trainingPseudoR2McFadden = self.trainingMcFadden[idx]
+                    testPseudoR2Nagelkerke = self.testNagelkerke[idx]
+                    testPseudoR2McFadden = self.testMcFadden[idx]
+
+                    out.write(f"{self.cohort},{a:.4f},{b:.4f},{TD50:3f},")
+                    out.write(f"{originalPseudoR2Nagelkerke:.4f}, {originalPseudoR2McFadden:.4f},")
+                    out.write(f"{testPseudoR2Nagelkerke:.4f}, {testPseudoR2McFadden:.4f},")
+                    out.write(f"{trainingPseudoR2Nagelkerke:.4f}, {trainingPseudoR2McFadden:.4f}\n")

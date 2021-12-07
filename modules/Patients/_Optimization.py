@@ -8,6 +8,17 @@ from tkinter import *
 from tkinter import ttk
 
 from ..Tools import *
+from time import perf_counter
+
+
+class Result:
+    def __init__(self, fun, x):
+        self.fun = fun
+        self.x = x
+
+    def items(self):
+        d = {'x': self.x, 'fun': self.fun}
+        return d.items()
 
 
 def gradient_respecting_bounds(bounds, fun, eps=1e-8):
@@ -108,15 +119,6 @@ def doMatrixMinimization(self, progress):
     if progress:
         progress['value'] = 0
 
-    class Result:
-        def __init__(self, fun, x):
-            self.fun = fun
-            self.x = x
-
-        def items(self):
-            d = {'x': self.x, 'fun': self.fun}
-            return d.items()
-
     return Result(toxArray[minIdx], self.bestParameters)
 
 
@@ -155,8 +157,11 @@ def doGradientOptimization(self, progress):
 
         a = self.options.fixN.get() and p['n'] or x[self.idx['a']]
         b = self.options.fixM.get() and p['m'] or x[self.idx['b']]
-        Lambda = self.options.fixLambda.get() and p['lambda'] or x[self.idx['lambda']]
-        gamma = self.options.fixGamma.get() and p['gamma'] or x[self.idx['gamma']]
+        if self.NTCPTimeDict:
+            Lambda = self.options.fixLambda.get() and p['lambda'] or x[self.idx['lambda']]
+            gamma = self.options.fixGamma.get() and p['gamma'] or x[self.idx['gamma']]
+        else:
+            Lambda = gamma = None
 
         for tox, Dpercent, time in args:
             NTCP = 1 - 1 / (1 + exp(a + b * Dpercent))
@@ -181,8 +186,11 @@ def doGradientOptimization(self, progress):
         n = self.options.fixN.get() and p['n'] or x[self.idx['n']]
         m = self.options.fixM.get() and p['m'] or x[self.idx['m']]
         TD50 = self.options.fixTD50.get() and p['TD50'] or x[self.idx['TD50']]
-        Lambda = self.options.fixLambda.get() and p['lambda'] or x[self.idx['lambda']]
-        gamma = self.options.fixGamma.get() and p['gamma'] or x[self.idx['gamma']]
+        if self.NTCPTimeDict:
+            Lambda = self.options.fixLambda.get() and p['lambda'] or x[self.idx['lambda']]
+            gamma = self.options.fixGamma.get() and p['gamma'] or x[self.idx['gamma']]
+        else:
+            Lamda = gamma = None
 
         for tox, GEUDspline, time in args:
             gEUD = GEUDspline(x[0])
@@ -210,27 +218,55 @@ def doGradientOptimization(self, progress):
 
         a = self.options.fixN.get() and p['n'] or x[self.idx['a']]
         b = self.options.fixM.get() and p['m'] or x[self.idx['b']]
-        Lambda = self.options.fixLambda.get() and p['lambda'] or x[self.idx['lambda']]
-        gamma = self.options.fixGamma.get() and p['gamma'] or x[self.idx['gamma']]
+        eps = 1e-20
 
-        for tox, Dpercent, time in args:
+        for tox, Dpercent in args:
             NTCP = 1 - 1 / (1 + exp(a + b * Dpercent))
-            if time and not tox:
-                NTCP *= (1 - exp(-(Lambda * time)**gamma))
 
             if tox:
-                error -= log(max(NTCP, 1e-323))
+                error -= log(NTCP + eps)
             else:
-                error -= log(max(1 - NTCP, 1e-323))
+                error -= log(1 - NTCP + eps)
 
         # Lower and Upper bounds to optimization ("all cases below X Gy should be negative")
         if self.options.NTCPBoundWeight.get():
             NTCP = 1 - 1 / (1 + exp(a + b * self.options.NTCPBoundLower.get()))
-            error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(1 - NTCP, 1e-323))
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(1 - NTCP + eps)
 
         if self.options.NTCPBoundWeight.get():
             NTCP = 1 - 1 / (1 + exp(a + b * self.options.NTCPBoundHigher.get()))
-            error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(NTCP, 1e-323))
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(NTCP + eps)
+
+        return error
+
+    def funLogitLLHtime(x, *args):
+        error = 0
+
+        a = self.options.fixN.get() and p['n'] or x[self.idx['a']]
+        b = self.options.fixM.get() and p['m'] or x[self.idx['b']]
+        Lambda = self.options.fixLambda.get() and p['lambda'] or x[self.idx['lambda']]
+        gamma = self.options.fixGamma.get() and p['gamma'] or x[self.idx['gamma']]
+        eps = 1e-20
+
+        for tox, Dpercent, time in args:
+            NTCP = 1 - 1 / (1 + exp(a + b * Dpercent))
+
+            if tox:
+                error -= log(NTCP + eps)
+            else:
+                if time:
+                    NTCP *= (1 - exp(-(Lambda * time)**gamma))
+
+                error -= log(1 - NTCP + eps)
+
+        # Lower and Upper bounds to optimization ("all cases below X Gy should be negative")
+        if self.options.NTCPBoundWeight.get():
+            NTCP = 1 - 1 / (1 + exp(a + b * self.options.NTCPBoundLower.get()))
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(1 - NTCP + eps)
+
+        if self.options.NTCPBoundWeight.get():
+            NTCP = 1 - 1 / (1 + exp(a + b * self.options.NTCPBoundHigher.get()))
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(NTCP + eps)
 
         return error
 
@@ -240,32 +276,64 @@ def doGradientOptimization(self, progress):
         n = self.options.fixN.get() and p['n'] or x[self.idx['n']]
         m = self.options.fixM.get() and p['m'] or x[self.idx['m']]
         TD50 = self.options.fixTD50.get() and p['TD50'] or x[self.idx['TD50']]
-        Lambda = self.options.fixLambda.get() and p['lambda'] or x[self.idx['lambda']]
-        gamma = self.options.fixGamma.get() and p['gamma'] or x[self.idx['gamma']]
+        eps = 1e-20
 
-        for tox, GEUDspline, time in args:
+        for tox, GEUDspline in args:
             gEUD = GEUDspline(n)
-            if gEUD < 0:
+
+            if gEUD <= 0:
                 NTCP = 0
             else:
-                NTCP = HPM((GEUDspline(n) - TD50) / (m * TD50))
-
-            if time and not tox:
-                NTCP *= (1 - exp(-(Lambda * time)**gamma))
+                NTCP = HPM((gEUD - TD50) / (m * TD50))
 
             if tox:
-                error -= log(max(NTCP, 1e-323))
+                error -= log(NTCP + eps)
             else:
-                error -= log(max(1 - NTCP, 1e-323))
+                error -= log(1 - NTCP + eps)
 
         # Lower and Upper bounds to optimization ("all cases below X Gy should be negative")
         if self.options.NTCPBoundWeight.get():
             NTCP = HPM((self.options.NTCPBoundLower.get() - TD50) / (m * TD50))
-            error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(1 - NTCP, 1e-323))
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(1 - NTCP + eps)
+
+            NTCP = HPM((self.options.NTCPBoundUpper.get() - TD50) / (m * TD50))
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(NTCP + eps)
+
+        return error
+
+    def funLKBLLHtime(x, *args):
+        error = 0
+
+        n = self.options.fixN.get() and p['n'] or x[self.idx['n']]
+        m = self.options.fixM.get() and p['m'] or x[self.idx['m']]
+        TD50 = self.options.fixTD50.get() and p['TD50'] or x[self.idx['TD50']]
+
+        Lambda = self.options.fixLambda.get() and p['lambda'] or x[self.idx['lambda']]
+        gamma = self.options.fixGamma.get() and p['gamma'] or x[self.idx['gamma']]
+        eps = 1e-20
+
+        for tox, GEUDspline, time in args:
+            gEUD = GEUDspline(n)
+            if gEUD <= 0:
+                NTCP = 0
+            else:
+                NTCP = HPM((gEUD - TD50) / (m * TD50))
+
+            if tox:
+                error -= np.log(NTCP + eps)
+            else:
+                if time:
+                    NTCP *= (1 - exp(-(Lambda * time)**gamma))
+                error -= np.log(1 - NTCP + eps)
+
+        # Lower and Upper bounds to optimization ("all cases below X Gy should be negative")
+        if self.options.NTCPBoundWeight.get():
+            NTCP = HPM((self.options.NTCPBoundLower.get() - TD50) / (m * TD50))
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(1 - NTCP + eps)
 
         if self.options.NTCPBoundWeight.get():
             NTCP = HPM((self.options.NTCPBoundUpper.get() - TD50) / (m * TD50))
-            error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(NTCP, 1e-323))
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(NTCP + eps)
 
         return error
 
@@ -280,15 +348,40 @@ def doGradientOptimization(self, progress):
     argTuple = ()
     if self.options.NTCPcalculation.get() == "Logit":
         for name, patient in list(self.patients.items()):
-            NTCPTime = self.NTCPTimeDict and self.NTCPTimeDict[name.split("_")[0].split("tox")[0]] / 12 or None
-            argTuple += ((patient.getTox() >= self.options.toxLimit.get(), patient.getDpercent(), NTCPTime),)
+            if self.NTCPTimeDict:
+                NTCPTime = self.NTCPTimeDict and self.NTCPTimeDict[name.split("_")[0].split("tox")[0]] / 12 or None
+                argTuple += ((patient.getTox() >= self.options.toxLimit.get(), patient.getDpercent(), NTCPTime),)
+            else:
+                argTuple += ((patient.getTox() >= self.options.toxLimit.get(), patient.getDpercent()),)
 
     elif self.options.NTCPcalculation.get() == "LKB":
         for name, patient in list(self.patients.items()):
-            NTCPTime = self.NTCPTimeDict and self.NTCPTimeDict[name.split("_")[0].split("tox")[0]] / 12 or None
-            argTuple += ((patient.getTox() >= self.options.toxLimit.get(), patient.getGEUD, NTCPTime),)
+            if self.NTCPTimeDict:
+                NTCPTime = self.NTCPTimeDict and self.NTCPTimeDict[name.split("_")[0].split("tox")[0]] / 12 or None
+                argTuple += ((patient.getTox() >= self.options.toxLimit.get(), patient.fastGetGEUD, NTCPTime),)
+            else:
+                argTuple += ((patient.getTox() >= self.options.toxLimit.get(), patient.fastGetGEUD),)
 
     mytakestep = MyTakeStep(self.options, self.idx)
+
+    if (self.options.NTCPcalculation.get() == "LKB" and self.options.fixN.get() and self.options.fixM.get() and self.options.fixTD50.get()) \
+            or (self.options.NTCPcalculation.get() == "Logit" and self.options.fixA.get() and self.options.fixB.get()):
+        # Fixed parameters, so only return LLH
+        # E.g. for external model validation on dataset
+
+        funs = {'LKB': {'LLH': funLKBLLH, 'LS': funLKBLS}, 'Logit': {'LLH': funLogitLLH, 'LS': funLogitLS}}
+        fun = funs[self.options.NTCPcalculation.get()][self.options.optimizationMetric.get()]
+
+        if self.NTCPTimeDict and self.options.NTCPcalculation.get() == "LKB":
+            fun = funLKBLLHtime
+
+        p = {'a': self.options.aFrom.get(), 'b': self.options.bFrom.get(),
+             'n': self.options.nFrom.get(), 'm': self.options.mFrom.get(), 'TD50': self.options.TD50From.get()}
+
+        params = self.options.NTCPcalculation.get() == "LKB" and [p['n'], p['m'], p['TD50']] or [p['a'], p['b']]
+
+        error = fun(params, *argTuple)
+        return Result(error, params)
 
     if self.options.NTCPcalculation.get() == "Logit":
         boundsA = (self.options.aFrom.get(), self.options.aTo.get())
@@ -351,8 +444,13 @@ def doGradientOptimization(self, progress):
     funs = {'LKB': {'LLH': funLKBLLH, 'LS': funLKBLS}, 'Logit': {'LLH': funLogitLLH, 'LS': funLogitLS}}
     fun = funs[self.options.NTCPcalculation.get()][self.options.optimizationMetric.get()]
 
+    if self.NTCPTimeDict and self.options.NTCPcalculation.get() == "LKB":
+        fun = funLKBLLHtime
+    elif self.NTCPTimeDict and self.options.NTCPcalculation.get() == "Logit":
+        fun = funLogitLLHtime
+
     res = basinhopping(fun, x0, niter=self.options.basinHoppingIterations.get(), T=self.options.basinHoppingTemperature.get(),
-                       minimizer_kwargs={'args': argTuple, 'method': 'TNC', 'bounds': bounds},
+                       minimizer_kwargs={'args': argTuple, 'method': 'Powell', 'bounds': bounds},
                        take_step=mytakestep, callback=print_fun)
 
     self.bestParameters = res.x

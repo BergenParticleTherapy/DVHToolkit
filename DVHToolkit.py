@@ -128,12 +128,32 @@
 # Fixed loading of some Raystation files where there were multiple 0-volume lines in the beginning of file
 # -> When aggregating several of these the matrix size exploded
 
+# Changelog version 1.72
+# Added support for pseudo-R2 metrics during bootstrap (stored in Output/bootstrapParameterSpace.csv)
+# Also from the "validate NTCP" menu, but this is bit limited so far
+# Added numba jit support for the HPM and gEUD calculation + speeded up some of the code in _Optimization.py
+
+# TODO:
+# - Enrichen the "validate NTCP" menu
+# - Add nested decorator to work in non-numba environments (but give advice to install)
+# - Unit tests ???
+# - Documentation. Documentation. Documentation.
+# - Write short note on the software & send to https://f1000research.com/for-authors/article-guidelines/software-tool-articles
+# - In that case the code should be prettified :-) Especially the BS part
+
 import sys
 from tkinter import *
 from modules import MainMenu
+# import cProfile, pstats
+
 print(sys.executable)
 print(sys.version)
 
 root = Tk()
 mainmenu = MainMenu(root)
 root.mainloop()
+
+#cProfile.run('root.mainloop()', "{}.profile".format(__file__))
+#s = pstats.Stats("{}.profile".format(__file__))
+# s.strip_dirs()
+# s.sort_stats("time").print_stats(20)

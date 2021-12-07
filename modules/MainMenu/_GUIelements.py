@@ -276,23 +276,25 @@ def calculateR2(self):
 
     print("Mean(y) is", mean_y)
 
+    eps = 1e-10
+
     for cohort_, patients in self.patients.items():
         for name, patient in patients.patients.items():
             tox = patient.getTox() >= self.options.toxLimit.get()
 
             if self.options.NTCPcalculation.get() == "LKB":
-                model_n, m, TD50 = patients.bestParameters
-                NTCP = HPM((patient.getGEUD(model_n) - TD50) / (m * TD50))
-
-                LL1 += tox * math.log(max(NTCP, 1e-323)) + (1-tox) * math.log(max(1 - NTCP, 1e-323))
-                LL0 += tox * math.log(max(mean_y, 1e-323)) + (1-tox) * math.log(max(1 - mean_y, 1e-323))
+                n, m, TD50 = patients.bestParameters
+                NTCP = HPM((patient.getGEUD(n) - TD50) / (m * TD50))
+                
+                LL1 += tox * math.log(NTCP + eps) + (1-tox) * math.log(1 - NTCP + eps)
+                LL0 += tox * math.log(mean_y + eps) + (1-tox) * math.log(1 - mean_y + eps)
 
             elif self.options.NTCPcalculation.get() == "Logit":
                 a, b = patients.bestParameters
                 NTCP = 1 - 1 / (1 + exp(a + b * patient.getDpercent()))
 
-                LL1 += tox * math.log(max(NTCP, 1e-323)) + (1-tox) * math.log(max(1 - NTCP, 1e-323))
-                LL0 += tox * math.log(max(mean_y, 1e-323)) + (1-tox) * math.log(max(1 - mean_y, 1e-323))
+                LL1 += tox * math.log(NTCP + eps) + (1-tox) * math.log(1 - NTCP + eps)
+                LL0 += tox * math.log(mean_y + eps) + (1-tox) * math.log(1 - mean_y + eps)
 
 
         model_m = self.options.NTCPcalculation.get() == "LKB" and 3 or 2
@@ -805,6 +807,8 @@ def switchToNTCPcc(self):
 def calculateNTCPCommand(self, draw=True):
     self.window.destroy()
     cohortList = list(self.patients.values())
+    self.buttonLKBuncert['state'] = 'normal'
+
     
     primaryCohort = cohortList[0]
     secondaryCohorts = len(cohortList) > 1 and cohortList[1:] or {}
@@ -853,6 +857,7 @@ def NTCPcalculationCommand(self):
         self.buttonCalculateNTCP['state'] = 'normal'
         self.buttonCalculateAUROC['state'] = 'normal'
         self.buttonCalculateDVH['state'] = 'normal'
+        self.buttonLKBuncert['state'] = 'normal'
 
         self.paramNLabel['text'] = "Logit a parameter: "
         self.paramMLabel['text'] = "Logit b parameter: "
@@ -919,7 +924,7 @@ def NTCPcalculationCommand(self):
             self.buttonCalculateAUROC['state'] = 'disabled'
             self.buttonCalculateDVH['state'] = 'normal'
             self.buttonCalculateGEUD['state'] = 'normal'
-            # self.buttonLKBuncert['state'] = 'normal'
+            #self.buttonLKBuncert['state'] = 'normal'
 
 
 def calculateBootstrapWindow(self):

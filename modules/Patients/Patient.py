@@ -2,9 +2,22 @@ import os
 from math import *
 import pandas as pd
 import numpy as np
+import numba as nb
 from bisect import bisect_left
 from tkinter import *
 
+
+@nb.njit
+def njitGetGEUD(n, nList, GEUDlist):
+    # Fast interpolation (much quicker than np.interp1d)
+    # stackoverflow.com/questions/35508571/multiple-1d-interpolations-in-python
+    index = np.searchsorted(nList, n)
+    _xrange = nList[index] - nList[index - 1]
+    xdiff = n - nList[index - 1]
+    modolo = xdiff / _xrange
+    ydiff = GEUDlist[index] - GEUDlist[index - 1]
+    lastGEUD = GEUDlist[index - 1] + modolo * ydiff
+    return n, lastGEUD
 
 class Patient:
     def __init__(self, dvh):
@@ -27,6 +40,8 @@ class Patient:
         self.lastGEUD = None
         self.GEUDlist = None
         self.nList = None
+        self.nListFirst = 0
+        self.nListLast = 2
 
     def __repr__(self):
         return {'cohort': self.cohort, 'plan': self.plan, 'structure': self.structure}
@@ -136,6 +151,8 @@ class Patient:
                     GEUDlist.append(float(linesplit[1]))
                 self.nList = np.array(nList)
                 self.GEUDlist = np.array(GEUDlist)
+                self.nListFirst = self.nList[0]
+                self.nListLast = self.nList[-1]
                 options.nFrom.set(nList[0])
                 options.nTo.set(nList[-1] - 0.02)
 
@@ -166,6 +183,8 @@ class Patient:
         try:
             self.nList = np.array(nListGood)
             self.GEUDlist = np.array(GEUDlist)
+            self.nListFirst = self.nList[0]
+            self.nListLast = self.nList[-1]
         except:
             print(f"Could not create gEUD list for patient {self.ID}.")
             self.nList = None
@@ -178,25 +197,33 @@ class Patient:
             for n, GEUD in zip(self.nList, self.GEUDlist):
                 fh.write(b"%.3f,%.3f\n" % (n, GEUD))
 
+    def fastGetGEUD(self, n):
+        if self.lastN == n:
+            return self.lastGEUD
+
+        elif not self.nListFirst <= n <= self.nListLast:
+            return 0
+                    
+        self.lastN, self.lastGEUD = njitGetGEUD(n, self.nList, self.GEUDlist)
+        return self.lastGEUD
+
     def getGEUD(self, n):
         if self.lastN == n:
             return self.lastGEUD
 
+        elif not self.nListFirst <= n <= self.nListLast:
+            return 0
+
         else:
             # Fast interpolation (much quicker than np.interp1d)
             # stackoverflow.com/questions/35508571/multiple-1d-interpolations-in-python
-            try:
-                index = bisect_left(self.nList, n)
-                _xrange = self.nList[index] - self.nList[index - 1]
-                xdiff = n - self.nList[index - 1]
-                modolo = xdiff / _xrange
-                ydiff = self.GEUDlist[index] - self.GEUDlist[index - 1]
-                self.lastN = n
-                self.lastGEUD = self.GEUDlist[index - 1] + modolo * ydiff
-            except IndexError as e:
-                print(f"Error: The wanted value n={n} is not pre-calculated: {e}")
-                print(f"The pre-calculated range is [{self.nList[0]} - {self.nList[-1]}].")
-                return 0
+            index = bisect_left(self.nList, n)
+            _xrange = self.nList[index] - self.nList[index - 1]
+            xdiff = n - self.nList[index - 1]
+            modolo = xdiff / _xrange
+            ydiff = self.GEUDlist[index] - self.GEUDlist[index - 1]
+            self.lastN = n
+            self.lastGEUD = self.GEUDlist[index - 1] + modolo * ydiff
 
         return self.lastGEUD
 
