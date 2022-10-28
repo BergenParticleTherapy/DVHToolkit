@@ -328,9 +328,8 @@ class Patients:
 
                         dvh = dvh[dvh["Volume"] > 0]
 
-                        patient = Patient(dvh)
-                        if self.options.loadToxFromFilename.get():
-                            patient.setTox("tox" in filename.lower())
+                        patient = Patient(dvh)                      
+                            
                         patient.setStructure(structure[0])
                         patient.setPlan(plan[0])
                         patientName = filename[:-4]
@@ -341,6 +340,15 @@ class Patients:
                         patient.setMinDoseFromEclipse(structure[4] * doseUnit)
                         patient.setMaxDoseFromEclipse(structure[5] * doseUnit)
                         patient.setVolumeFromEclipse(structure[6])
+                        
+                        if self.options.loadToxFromFilename.get():
+                            patient.setTox("tox" in filename.lower())
+                        else:
+                            try:
+                                patient.setTox(toxDict[patient.ID])
+                            except:
+                                log.append("Could not find patient %s in %s_tox.csv, skipping patient." % (patient.ID, self.dataFolder))
+                                continue
 
                         # Add object to dictionary
                         self.cohort = self.dataFolder.split("/")[-1]
@@ -467,8 +475,7 @@ class Patients:
                         dvh = dvh.drop_duplicates(subset="Dose", keep="last")
 
                         patient = Patient(dvh)
-                        if self.options.loadToxFromFilename.get():
-                            patient.setTox("tox" in filename.lower())
+                        
                         patient.setStructure(structure[0])
                         # patient.setPlan(plan[0])
                         patient.setPlan(planNames[0])
@@ -476,6 +483,15 @@ class Patients:
                         patient.setCohort(self.dataFolder.split("/")[-1])
                         patient.setDataFolder(self.dataFolder)
                         patient.setID(f"{patientName}_{patient.getPlan()}_{patient.getStructure()}")
+
+                        if self.options.loadToxFromFilename.get():
+                            patient.setTox("tox" in filename.lower())
+                        else:
+                            try:
+                                patient.setTox(toxDict[patient.ID])
+                            except:
+                                log.append("Could not find patient %s in %s_tox.csv, skipping patient." % (patient.ID, self.dataFolder))
+                                continue
 
                         # Add object to dictionary
                         self.cohort = self.dataFolder.split("/")[-1]
