@@ -13,6 +13,6 @@ Load the file by configuring ``DVHToolkit`` with "DVH File type: simple"; "decim
 ## ExampleCohort2:
 The data here is the same, but instead of providing an ``ExampleCohort2_tox.csv`` file, the status is coded directly into the filenames themselves:
 ```
-patient1.csv, patient2tox.csv, patient3.csv
+patient1.csv, patient2tox.csv
 ```
 Configure the program similarly, but remember to set "Load toxicity from: 'tox' in filename".
