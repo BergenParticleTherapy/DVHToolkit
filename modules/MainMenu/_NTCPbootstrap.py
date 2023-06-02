@@ -67,6 +67,7 @@ def calculateLKBuncert(self):
     nIterations = self.options.confidenceIntervalIterations.get()
 
     for patients in cohortList:
+        patients.resetIdx()
         patients.options = self.options
         patients.pSpace = patients.ParameterSpace(nIterations, self.log, patients.cohort, self.options, patients.idx)
 

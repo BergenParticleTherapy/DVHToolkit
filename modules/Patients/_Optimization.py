@@ -10,7 +10,6 @@ from tkinter import ttk
 from ..Tools import *
 from time import perf_counter
 
-
 class Result:
     def __init__(self, fun, x):
         self.fun = fun
@@ -19,7 +18,6 @@ class Result:
     def items(self):
         d = {'x': self.x, 'fun': self.fun}
         return d.items()
-
 
 def gradient_respecting_bounds(bounds, fun, eps=1e-8):
     """bounds: list of tuples (lower, upper)
@@ -170,11 +168,10 @@ def doGradientOptimization(self, progress):
             error += (tox - NTCP) ** 2
 
         # Lower and Upper bounds to optimization ("all cases below X Gy should be negative")
-        if self.options.NTCPBoundWeight.get():
+        if self.options.NTCPBoundWeight.get() and self.options.NTCPUseBound.get():
             NTCP = 1 - 1 / (1 + exp(a + b * self.options.NTCPBoundLower.get()))
             error += len(args) * self.options.NTCPBoundWeight.get() * (NTCP ** 2)
 
-        if self.options.NTCPBoundWeight.get():
             NTCP = 1 - 1 / (1 + exp(a + b * self.options.NTCPBoundHigher.get()))
             error += len(args) * self.options.NTCPBoundWeight.get() * (1 - NTCP)**2
 
@@ -203,11 +200,10 @@ def doGradientOptimization(self, progress):
             error += (tox - NTCP) ** 2
 
         # Lower and Upper bounds to optimization ("all cases below X Gy should be negative")
-        if self.options.NTCPBoundWeight.get():
+        if self.options.NTCPBoundWeight.get() and self.options.NTCPUseBound.get():
             NTCP = HPM((self.options.NTCPBoundLower.get() - TD50) / (m * TD50))
             error += len(args) * self.options.NTCPBoundWeight.get() * (NTCP ** 2)
 
-        if self.options.NTCPBoundWeight.get():
             NTCP = HPM((self.options.NTCPBoundUpper.get() - TD50) / (m * TD50))
             error += len(args) * self.options.NTCPBoundWeight.get() * (1 - NTCP)**2
 
@@ -229,13 +225,12 @@ def doGradientOptimization(self, progress):
                 error -= log(1 - NTCP + eps)
 
         # Lower and Upper bounds to optimization ("all cases below X Gy should be negative")
-        if self.options.NTCPBoundWeight.get():
+        if self.options.NTCPBoundWeight.get() and self.options.NTCPUseBound.get():
             NTCP = 1 - 1 / (1 + exp(a + b * self.options.NTCPBoundLower.get()))
-            error -= len(args) * self.options.NTCPBoundWeight.get() * log(1 - NTCP + eps)
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(1 - NTCP, 1e-323))
 
-        if self.options.NTCPBoundWeight.get():
             NTCP = 1 - 1 / (1 + exp(a + b * self.options.NTCPBoundHigher.get()))
-            error -= len(args) * self.options.NTCPBoundWeight.get() * log(NTCP + eps)
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(NTCP, 1e-323))
 
         return error
 
@@ -252,21 +247,20 @@ def doGradientOptimization(self, progress):
             NTCP = 1 - 1 / (1 + exp(a + b * Dpercent))
 
             if tox:
-                error -= log(NTCP + eps)
+                error -= log(max(NTCP + eps))
             else:
                 if time:
                     NTCP *= (1 - exp(-(Lambda * time)**gamma))
 
-                error -= log(1 - NTCP + eps)
+                error -= log(max(1 - NTCP + eps))
 
         # Lower and Upper bounds to optimization ("all cases below X Gy should be negative")
-        if self.options.NTCPBoundWeight.get():
+        if self.options.NTCPBoundWeight.get() and self.options.NTCPUseBound.get():
             NTCP = 1 - 1 / (1 + exp(a + b * self.options.NTCPBoundLower.get()))
-            error -= len(args) * self.options.NTCPBoundWeight.get() * log(1 - NTCP + eps)
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(1 - NTCP, 1e-323))
 
-        if self.options.NTCPBoundWeight.get():
             NTCP = 1 - 1 / (1 + exp(a + b * self.options.NTCPBoundHigher.get()))
-            error -= len(args) * self.options.NTCPBoundWeight.get() * log(NTCP + eps)
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(NTCP, 1e-323))
 
         return error
 
@@ -280,7 +274,7 @@ def doGradientOptimization(self, progress):
 
         for tox, GEUDspline in args:
             gEUD = GEUDspline(n)
-
+            
             if gEUD <= 0:
                 NTCP = 0
             else:
@@ -289,10 +283,11 @@ def doGradientOptimization(self, progress):
             if tox:
                 error -= log(NTCP + eps)
             else:
-                error -= log(1 - NTCP + eps)
+                error -= log(1-NTCP + eps)
+            
 
         # Lower and Upper bounds to optimization ("all cases below X Gy should be negative")
-        if self.options.NTCPBoundWeight.get():
+        if self.options.NTCPBoundWeight.get() and self.options.NTCPUseBound.get():
             NTCP = HPM((self.options.NTCPBoundLower.get() - TD50) / (m * TD50))
             error -= len(args) * self.options.NTCPBoundWeight.get() * log(1 - NTCP + eps)
 
@@ -322,18 +317,17 @@ def doGradientOptimization(self, progress):
             if tox:
                 error -= np.log(NTCP + eps)
             else:
-                if time:
+                if time: 
                     NTCP *= (1 - exp(-(Lambda * time)**gamma))
                 error -= np.log(1 - NTCP + eps)
 
         # Lower and Upper bounds to optimization ("all cases below X Gy should be negative")
-        if self.options.NTCPBoundWeight.get():
+        if self.options.NTCPBoundWeight.get() and self.options.NTCPUseBound.get():
             NTCP = HPM((self.options.NTCPBoundLower.get() - TD50) / (m * TD50))
-            error -= len(args) * self.options.NTCPBoundWeight.get() * log(1 - NTCP + eps)
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(1 - NTCP, 1e-323))
 
-        if self.options.NTCPBoundWeight.get():
             NTCP = HPM((self.options.NTCPBoundUpper.get() - TD50) / (m * TD50))
-            error -= len(args) * self.options.NTCPBoundWeight.get() * log(NTCP + eps)
+            error -= len(args) * self.options.NTCPBoundWeight.get() * log(max(NTCP, 1e-323))
 
         return error
 
@@ -365,7 +359,7 @@ def doGradientOptimization(self, progress):
     mytakestep = MyTakeStep(self.options, self.idx)
 
     if (self.options.NTCPcalculation.get() == "LKB" and self.options.fixN.get() and self.options.fixM.get() and self.options.fixTD50.get()) \
-            or (self.options.NTCPcalculation.get() == "Logit" and self.options.fixA.get() and self.options.fixB.get()):
+        or (self.options.NTCPcalculation.get() == "Logit" and self.options.fixA.get() and self.options.fixB.get()):
         # Fixed parameters, so only return LLH
         # E.g. for external model validation on dataset
 

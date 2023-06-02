@@ -14,13 +14,13 @@ class MainMenu(Frame):
         Frame.__init__(self, parent)
         self.parent = parent
         self.parent.protocol("WM_DELETE_WINDOW", self.myQuit)
-        self.parent.title(f"DVH tool with NTCP calculator {self.options.PROGRAM_VERSION:.2f} - Helge Pettersen")
+        self.parent.title(f"DVH Toolkit with NTCP calculator {self.options.PROGRAM_VERSION:.2f} - Helge Pettersen")
         self.window = None
         self.wraplength = 250
         self.button_width = 25
 
-        self.idx = dict()
-        self.resetIdx()
+        #self.idx = dict()
+        #self.resetIdx()
 
         self.bestParameters = []
         self.calculateMeanDose = IntVar(value=1)
@@ -228,8 +228,8 @@ class MainMenu(Frame):
     from ._GUIelements import customAggregatedDVHCommand, cancelCustomAggregateDVHCommand, matchCustomAggregateDVHCommand
     from ._GUIelements import saveCustomAggregateDVHCommand, packCustomAggregateDVHCommand, calculateNTCPWindow, calculateNTCPWindowCancel, switchToNTCPcc
     from ._GUIelements import calculateBootstrapWindow, calculateBootstrapWindowCancel, autodetectDVHHeaderCommand
-    from ._GUIelements import calculateGEUDWindow, cancelCalculateGEUDCommand, resetIdx, calculateAUROCCommand
-    from ._GUIelements import calculateR2, cancelDataValidationWindow
+    from ._GUIelements import calculateGEUDWindow, cancelCalculateGEUDCommand, calculateAUROCCommand # , resetIdx
+    from ._GUIelements import calculateR2, cancelDataValidationWindow, NTCPUseBoundCommand, timeDependencyCommand
 
     from ._Analysis import calculateDVHvalues, calculateAggregatedDVH
     from ._NTCPbootstrap import calculateLKBuncert

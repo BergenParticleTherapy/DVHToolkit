@@ -186,7 +186,7 @@ def drawSigmoid(self, log, style1, style2, doR2binning=False):
             plt.text(px_bin[i] + px_delta / 2, py_bin_frac[i] + 0.2, f"{frac_yes}/{frac_no}")
         """
 
-    if self.options.NTCPBoundWeight.get():
+    if self.options.NTCPBoundWeight.get() and self.options.NTCPUseBound.get():
         weight = self.options.NTCPBoundWeight.get()
         plt.plot(self.options.NTCPBoundLower.get(), -0.05, "^", color="k", label=f"Lower bound (w={weight})")
         plt.plot(self.options.NTCPBoundUpper.get(), 1.05, "v", color="k", label=f"Upper bound (w={weight})")

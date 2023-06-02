@@ -78,6 +78,7 @@ class Options():
         self.gammaFrom = DoubleVar(value=1.37)
         self.gammaTo = DoubleVar(value=2)
         self.NTCPGammaSize = DoubleVar(value=1.37)
+        self.NTCPUseBound = IntVar(value=0)
         self.NTCPBoundWeight = DoubleVar(value=1)
         self.NTCPBoundLower = DoubleVar(value=0)
         self.NTCPBoundUpper = DoubleVar(value=0)
@@ -112,9 +113,9 @@ class Options():
                      "dvhPlotLegendMarker": self.dvhPlotLegendMarker, "dvhPlotLineStyleGrouping": self.dvhPlotLineStyleGrouping,
                      "dvhPlotSeparatePlots": self.dvhPlotSeparatePlots, "dvhPlotsSaveFigs": self.dvhPlotsSaveFigs,
                      "dvhPlotLegendSize": self.dvhPlotLegendSize, "makeDifferentialCI": self.makeDifferentialCI,
-                     "useNTCPcc": self.useNTCPcc, "nSet": self.nSet, "NTCPBoundWeight": self.NTCPBoundWeight,
-                     "NTCPBoundUpper": self.NTCPBoundUpper, "NTCPBoundLower": self.NTCPBoundLower, "nGrid": self.nGrid,
-                     "nR2partitions": self.nR2partitions}
+                     "useNTCPcc": self.useNTCPcc, "nSet": self.nSet, "NTCPUseBound": self.NTCPUseBound, 
+                     "NTCPBoundWeight": self.NTCPBoundWeight, "NTCPBoundUpper": self.NTCPBoundUpper, 
+                     "NTCPBoundLower": self.NTCPBoundLower, "nGrid": self.nGrid, "nR2partitions": self.nR2partitions}
 
     def loadOptions(self):
         read = False

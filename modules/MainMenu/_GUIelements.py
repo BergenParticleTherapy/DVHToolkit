@@ -276,8 +276,6 @@ def calculateR2(self):
 
     print("Mean(y) is", mean_y)
 
-    eps = 1e-10
-
     for cohort_, patients in self.patients.items():
         for name, patient in patients.patients.items():
             tox = patient.getTox() >= self.options.toxLimit.get()
@@ -285,16 +283,16 @@ def calculateR2(self):
             if self.options.NTCPcalculation.get() == "LKB":
                 n, m, TD50 = patients.bestParameters
                 NTCP = HPM((patient.getGEUD(n) - TD50) / (m * TD50))
-                
-                LL1 += tox * math.log(NTCP + eps) + (1-tox) * math.log(1 - NTCP + eps)
-                LL0 += tox * math.log(mean_y + eps) + (1-tox) * math.log(1 - mean_y + eps)
+
+                LL1 += tox * math.log(max(NTCP, 1e-323)) + (1-tox) * math.log(max(1 - NTCP, 1e-323))
+                LL0 += tox * math.log(max(mean_y, 1e-323)) + (1-tox) * math.log(max(1 - mean_y, 1e-323))
 
             elif self.options.NTCPcalculation.get() == "Logit":
                 a, b = patients.bestParameters
                 NTCP = 1 - 1 / (1 + exp(a + b * patient.getDpercent()))
 
-                LL1 += tox * math.log(NTCP + eps) + (1-tox) * math.log(1 - NTCP + eps)
-                LL0 += tox * math.log(mean_y + eps) + (1-tox) * math.log(1 - mean_y + eps)
+                LL1 += tox * math.log(max(NTCP, 1e-323)) + (1-tox) * math.log(max(1 - NTCP, 1e-323))
+                LL0 += tox * math.log(max(mean_y, 1e-323)) + (1-tox) * math.log(max(1 - mean_y, 1e-323))
 
 
         model_m = self.options.NTCPcalculation.get() == "LKB" and 3 or 2
@@ -596,10 +594,13 @@ def calculateNTCPWindow(self, draw=True):
     self.basinHoppingsMsizeContainer = Frame(self.NTCPContainer)
     self.basinHoppingsTD50sizeContainer = Frame(self.NTCPContainer)
     self.basinHoppingsJumpLenghtsContainer = Frame(self.NTCPContainer)
+    self.NTCPBoundLineContainer = Frame(self.NTCPContainer)
+    self.NTCPUseBoundContainer = Frame(self.NTCPContainer)
     self.NTCPBoundWeightContainer = Frame(self.NTCPContainer)
     self.NTCPBoundLowerContainer = Frame(self.NTCPContainer)
     self.NTCPBoundUpperContainer = Frame(self.NTCPContainer)
     self.timeDependencyContainer = Frame(self.NTCPContainer)
+    self.timeDependencyLineContainer = Frame(self.NTCPContainer)
     self.timeDependencyLambdaContainer = Frame(self.NTCPContainer)
     self.timeDependencyGammaContainer = Frame(self.NTCPContainer)
 
@@ -611,17 +612,22 @@ def calculateNTCPWindow(self, draw=True):
     for text, mode in [("D%/cc + logit", "Logit"), ("LKB", "LKB")]:
         Radiobutton(self.NTCPcalculationContainer, text=text, variable=self.options.NTCPcalculation, 
                     value=mode, command=self.NTCPcalculationCommand).pack(side=LEFT, anchor=W)
-    Tooltip(self.NTCPcalculationContainer, text="The parameter limits for the LKB model are set below. "
+    Tooltip(self.NTCPcalculationContainer, text="The parameters and limits for the LKB model are set below. "
             "For the D% + logit model, only the percentage value has to be set.", wraplength=self.wraplength)
 
     self.NTCPpercentCcContainer.pack(anchor=W)
-    Checkbutton(self.basinHoppingsNsizeContainer, text="Use cc?", variable=self.options.useNTCPcc, command=self.switchToNTCPcc).pack(anchor=W)
+    Checkbutton(self.NTCPpercentCcContainer, text="Use Dcc insted of D%?", variable=self.options.useNTCPcc, command=self.switchToNTCPcc).pack(anchor=W)
+    var = self.options.NTCPcalculationDpercent.get()
+    Tooltip(self.NTCPpercentCcContainer, text=f"If active, the dose to the max {var:.0f} cubic centimeter instead of max {var:.0f} "
+        "per cent will be used", wraplength=self.wraplength)
     
     self.NTCPpercentContainer.pack(anchor=W)
     Label(self.NTCPpercentContainer, text="NTCP calculation Dose value: ").pack(side=LEFT, anchor=W)
     self.NTCPpercentLabel = Entry(self.NTCPpercentContainer, textvariable=self.options.NTCPcalculationDpercent, width=5)
     self.NTCPpercentLabel.pack(side=LEFT, anchor=W)
     self.NTCPpercentLabelPercentLabel = StringVar(value="%")
+    if self.options.useNTCPcc.get():
+        self.NTCPpercentLabelPercentLabel.set("cc")
     self.NTCPpercentLabelPercent = Label(self.NTCPpercentContainer, textvariable=self.NTCPpercentLabelPercentLabel)
     self.NTCPpercentLabelPercent.pack(side=LEFT, anchor=W)
     Tooltip(self.NTCPcalculationContainer, text="The D% value from the DVHs to be used in the logit model.", wraplength=self.wraplength)
@@ -678,8 +684,11 @@ def calculateNTCPWindow(self, draw=True):
         Radiobutton(self.optimizationMetricContainer, text=text, variable=self.options.optimizationMetric, value=mode).pack(side=LEFT, anchor=W)
     Tooltip(self.optimizationMetricContainer, text="Which metric to be minimized: a least-squares method sum_i (tox_i - LKB_i)^2, or "
             "a log likelihood sum_tox ln NTCP + sum_notox ln (1-NTCP).", wraplength=self.wraplength)
-    
-    self.matrixSizeContainer.pack(anchor=W)
+
+    Label(self.matrixSizeContainer, text="OPTIMIZATION ALGORITHM OPTIONS", font=("Helvetica", 12) ).pack(pady=(15,0))
+    Frame(self.matrixSizeContainer, bg="grey", relief=SUNKEN).pack(fill=X,expand=1,anchor=W)
+
+    self.matrixSizeContainer.pack(anchor=W, fill=X, expand=1)
     Label(self.matrixSizeContainer, text="Matrix Size: ").pack(side=LEFT, anchor=W)
     Entry(self.matrixSizeContainer, textvariable=self.options.matrixSize, width=5).pack(side=LEFT, anchor=W)
     Tooltip(self.matrixSizeContainer, text="The linear size of the grid in the Matrix Minimization optimization scheme. "
@@ -707,24 +716,47 @@ def calculateNTCPWindow(self, draw=True):
 
     Tooltip(self.basinHoppingsJumpLenghtsContainer, 
             text="For each \"basin hopping\", each parameter is perturbed as a random number within ± these values.", wraplength=self.wraplength)
+    
+    Label(self.NTCPBoundLineContainer, text="ADDITIONAL BOUNDARY CONDITIONS", font=("Helvetica", 12) ).pack(pady=(15,0))
+    Frame(self.NTCPBoundLineContainer, bg="grey", relief=SUNKEN).pack(fill=X,expand=1,anchor=W)
+    self.NTCPBoundLineContainer.pack(fill=X,expand=1,anchor=W)
 
-    self.NTCPBoundWeightContainer.pack(anchor=W)
-    Label(self.NTCPBoundWeightContainer, text="Boundary conditions: Weight ").pack(side=LEFT, anchor=W)
-    Entry(self.NTCPBoundWeightContainer, textvariable=self.options.NTCPBoundWeight, width=5).pack(side=LEFT, anchor=W)
-    Tooltip(self.NTCPBoundWeightContainer,
+    Checkbutton(self.NTCPUseBoundContainer, text="Use additional boundary conditions", 
+        variable=self.options.NTCPUseBound, command=self.NTCPUseBoundCommand).pack(anchor=W, side=LEFT)
+
+    Tooltip(self.NTCPUseBoundContainer,
             text="Add artificial data points at Lower (no tox) and Upper (tox) positions to avoid too broad distributions."
             " The weight is the number of points to put at the Lower / Upper positions: NPoints = Dataset size * weight", wraplength=self.wraplength)
 
+    self.NTCPUseBoundContainer.pack(anchor=W)
+
+    self.NTCPBoundWeightContainer.pack(anchor=W)
+    self.NTCPBoundWeightLabel = Label(self.NTCPBoundWeightContainer, text="Boundary conditions: Weight ")
+    self.NTCPBoundWeightEntry = Entry(self.NTCPBoundWeightContainer, textvariable=self.options.NTCPBoundWeight, width=5)
+    self.NTCPBoundWeightLabel.pack(side=LEFT, anchor=W)
+    self.NTCPBoundWeightEntry.pack(side=LEFT, anchor=W)
+
     self.NTCPBoundLowerContainer.pack(anchor=W)
-    Label(self.NTCPBoundLowerContainer, text="Boundary conditions: Lower edge [Gy] ").pack(side=LEFT, anchor=W)
-    Entry(self.NTCPBoundLowerContainer, textvariable=self.options.NTCPBoundLower, width=5).pack(side=LEFT, anchor=W)
+    self.NTCPBoundLowerLabel = Label(self.NTCPBoundLowerContainer, text="Boundary conditions: Lower edge [Gy] ")
+    self.NTCPBoundLowerEntry = Entry(self.NTCPBoundLowerContainer, textvariable=self.options.NTCPBoundLower, width=5)
+    self.NTCPBoundLowerLabel.pack(side=LEFT, anchor=W)
+    self.NTCPBoundLowerEntry.pack(side=LEFT, anchor=W)
 
     self.NTCPBoundUpperContainer.pack(anchor=W)
-    Label(self.NTCPBoundUpperContainer, text="Boundary conditions: Upper edge [Gy] ").pack(side=LEFT, anchor=W)
-    Entry(self.NTCPBoundUpperContainer, textvariable=self.options.NTCPBoundUpper, width=5).pack(side=LEFT, anchor=W)
+    self.NTCPBoundUpperLabel = Label(self.NTCPBoundUpperContainer, text="Boundary conditions: Upper edge [Gy] ")
+    self.NTCPBoundUpperEntry = Entry(self.NTCPBoundUpperContainer, textvariable=self.options.NTCPBoundUpper, width=5)
+    self.NTCPBoundUpperLabel.pack(side=LEFT, anchor=W)
+    self.NTCPBoundUpperEntry.pack(side=LEFT, anchor=W)
+
+    self.NTCPUseBoundCommand()
+
+    Label(self.timeDependencyLineContainer, text="TIME-DEPENDENT NTCP", font=("Helvetica", 12) ).pack(pady=(15,0))
+    Frame(self.timeDependencyLineContainer, bg="grey", relief=SUNKEN).pack(fill=X,expand=1,anchor=W)
+    self.timeDependencyLineContainer.pack(anchor=W,fill=X,expand=1)
 
     self.timeDependencyContainer.pack(anchor=W)
-    Checkbutton(self.timeDependencyContainer, text="Use time dependent NTCP", variable=self.options.NTCPTimeDependent).pack(anchor=W, side=LEFT)
+    Checkbutton(self.timeDependencyContainer, text="Use time dependent NTCP", variable=self.options.NTCPTimeDependent,
+                command=self.timeDependencyCommand).pack(anchor=W, side=LEFT)
 
     Tooltip(self.timeDependencyContainer,
         text="See Niyazi et al (2000) (10.1016/j.radonc.2019.09.008). Correct for time of last follow-up using "
@@ -759,6 +791,8 @@ def calculateNTCPWindow(self, draw=True):
     Tooltip(self.timeDependencyGammaContainer, text="The boundaries of the gamma parameter. "
             "If it is fixed, the lower value is applied", wraplength=self.wraplength)
 
+    self.timeDependencyCommand()
+
     Frame(self.NTCPContainer, bg="grey", relief=SUNKEN).pack(fill=X, expand=1, anchor=W, pady=5)
 
     if self.options.NTCPcalculation.get() == "Logit":
@@ -776,10 +810,12 @@ def calculateNTCPWindow(self, draw=True):
         self.paramBHsizeLabel[1]['text'] = "b: "
         self.paramBHsizeEntry[0]['textvariable'] = self.options.basinHoppingAsize
         self.paramBHsizeEntry[1]['textvariable'] = self.options.basinHoppingBsize
+        self.paramBHsizeLabel[2]['state'] = 'disabled'
         self.paramBHsizeEntry[2]['state'] = 'disabled'
     
         for k in self.paramTD50Entry:
             k['state'] = 'disabled'
+
     else:
         self.NTCPpercentLabel['state'] = 'disabled'
 
@@ -809,12 +845,12 @@ def calculateNTCPCommand(self, draw=True):
     cohortList = list(self.patients.values())
     self.buttonLKBuncert['state'] = 'normal'
 
-    
     primaryCohort = cohortList[0]
     secondaryCohorts = len(cohortList) > 1 and cohortList[1:] or {}
     
     for cohort in cohortList:
         cohort.options = self.options
+        cohort.resetIdx()
 
     if not self.options.didBootstrap: # Don't recalculate after bootstrap (= scrap pivot correction)
         if self.options.NTCPTimeDependent.get():
@@ -869,11 +905,14 @@ def NTCPcalculationCommand(self):
         self.paramMEntry[2]['textvariable'] = self.options.bTo
         for k in self.paramTD50Entry:
             k['state'] = 'disabled'
+        self.paramTD50Label['state'] = 'disabled'
+        self.paramTD50Label['state'] = 'disabled'
             
         self.paramBHsizeLabel[0]['text'] = "a: "
         self.paramBHsizeLabel[1]['text'] = "b: "
         self.paramBHsizeEntry[0]['textvariable'] = self.options.basinHoppingAsize
         self.paramBHsizeEntry[1]['textvariable'] = self.options.basinHoppingBsize
+        self.paramBHsizeLabel[2]['state'] = 'disabled'
         self.paramBHsizeEntry[2]['state'] = 'disabled'
     else:
         self.NTCPpercentLabel['state'] = 'disabled'
@@ -882,7 +921,9 @@ def NTCPcalculationCommand(self):
             hasGEUDs *= patientsInCohort.checkGEUDsplines()
         
         for k in self.paramTD50Entry:
-            k['state'] = 'normal'            
+            k['state'] = 'normal'
+        self.paramTD50Label['state'] = 'normal'
+       
         
         self.paramNLabel['text'] = "LKB n parameter: "
         self.paramMLabel['text'] = "LKB m parameter: "
@@ -900,6 +941,7 @@ def NTCPcalculationCommand(self):
         self.paramBHsizeLabel[1]['text'] = "m: "
         self.paramBHsizeEntry[0]['textvariable'] = self.options.basinHoppingNsize
         self.paramBHsizeEntry[1]['textvariable'] = self.options.basinHoppingMsize
+        self.paramBHsizeLabel[2]['state'] = 'disabled'
         self.paramBHsizeEntry[2]['state'] = 'normal'
         
         if hasGEUDs and len(self.patients):
@@ -1598,36 +1640,72 @@ def switchTD50to(self):
         patientsInCohort.bestParameters = list()
         patientsInCohort.resetIdx()
 
-def resetIdx(self):
-    self.idx = {'n': 0, 'm': 1, 'TD50': 2, 'lambda': 3, 'gamma': 4}
-    if self.options.fixN.get():
-        self.idx['m'] -= 1
-        self.idx['TD50'] -= 1
-        self.idx['lambda'] -= 1
-        self.idx['gamma'] -= 1
+def NTCPUseBoundCommand(self):
+    if self.options.NTCPUseBound.get():
+        self.NTCPBoundUpperLabel['state'] = 'normal'
+        self.NTCPBoundUpperEntry['state'] = 'normal'
+        self.NTCPBoundLowerLabel['state'] = 'normal'
+        self.NTCPBoundLowerEntry['state'] = 'normal'
+        self.NTCPBoundWeightLabel['state'] = 'normal'
+        self.NTCPBoundWeightEntry['state'] = 'normal'
+    else:
+        self.NTCPBoundUpperLabel['state'] = 'disabled'
+        self.NTCPBoundUpperEntry['state'] = 'disabled'
+        self.NTCPBoundLowerLabel['state'] = 'disabled'
+        self.NTCPBoundLowerEntry['state'] = 'disabled'
+        self.NTCPBoundWeightLabel['state'] = 'disabled'
+        self.NTCPBoundWeightEntry['state'] = 'disabled'
 
-    if self.options.fixM.get():
-        self.idx['TD50'] -= 1
-        self.idx['lambda'] -= 1
-        self.idx['gamma'] -= 1
+def timeDependencyCommand(self):
+    if self.options.NTCPTimeDependent.get():
+        self.paramLambdaLabel['state'] = 'normal'
+        self.paramGammaLabel['state'] = 'normal'
 
-    if self.options.fixTD50.get():
-        self.idx['lambda'] -= 1
-        self.idx['gamma'] -= 1
+        for k in self.paramLambdaEntry:
+            k['state'] = 'normal'
+        for k in self.paramGammaEntry:
+            k['state'] = 'normal'
 
-    if self.options.fixLambda.get():
-        self.idx['gamma'] -= 1
+    else:
+        self.paramLambdaLabel['state'] = 'disabled'
+        self.paramGammaLabel['state'] = 'disabled'
 
-    if self.options.NTCPcalculation.get() == "Logit":  # Reset lambda / gamma paramters if so
-        self.idx = {'a': 0, 'b': 1, 'lambda': 2, 'gamma': 3}
-        if self.options.fixA.get():
-            self.idx['b'] -= 1
-            self.idx['lambda'] -= 1
-            self.idx['gamma'] -= 1
+        for k in self.paramLambdaEntry:
+            k['state'] = 'disabled'
+        for k in self.paramGammaEntry:
+            k['state'] = 'disabled'
 
-        if self.options.fixB.get():
-            self.idx['lambda'] -= 1
-            self.idx['gamma'] -= 1
+# IS THIS NECESSARY !!! IT'S ALREADY UNDER PATIENTS
+# def resetIdx(self):
+#     self.idx = {'n': 0, 'm': 1, 'TD50': 2, 'lambda': 3, 'gamma': 4}
+#     if self.options.fixN.get():
+#         self.idx['m'] -= 1
+#         self.idx['TD50'] -= 1
+#         self.idx['lambda'] -= 1
+#         self.idx['gamma'] -= 1
 
-        if self.options.fixLambda.get():
-            self.idx['gamma'] -= 1
+#     if self.options.fixM.get():
+#         self.idx['TD50'] -= 1
+#         self.idx['lambda'] -= 1
+#         self.idx['gamma'] -= 1
+
+#     if self.options.fixTD50.get():
+#         self.idx['lambda'] -= 1
+#         self.idx['gamma'] -= 1
+
+#     if self.options.fixLambda.get():
+#         self.idx['gamma'] -= 1
+
+#     if self.options.NTCPcalculation.get() == "Logit":  # Reset lambda / gamma paramters if so
+#         self.idx = {'a': 0, 'b': 1, 'lambda': 2, 'gamma': 3}
+#         if self.options.fixA.get():
+#             self.idx['b'] -= 1
+#             self.idx['lambda'] -= 1
+#             self.idx['gamma'] -= 1
+
+#         if self.options.fixB.get():
+#             self.idx['lambda'] -= 1
+#             self.idx['gamma'] -= 1
+
+#         if self.options.fixLambda.get():
+#             self.idx['gamma'] -= 1
