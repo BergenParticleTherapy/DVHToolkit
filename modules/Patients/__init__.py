@@ -416,7 +416,7 @@ class Patients:
                             if planStarts:
                                 planLength.append(idx - planStarts[-1] - 3)
 
-                        if "#Dose unit: " in line:
+                        if "#Dose unit: " in line or "#Unit:" in line:
                             structureStarts.append(idx + 1)
                             planStarts.append(idx + 1)
 
