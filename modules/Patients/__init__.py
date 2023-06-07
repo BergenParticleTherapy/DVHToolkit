@@ -472,7 +472,7 @@ class Patients:
                         dvh = dvh[dvh["Volume"] > 0]
 
                         # remove duplicate dose = 0 rows FROM top
-                        dvh = dvh.drop_duplicates(subset="Dose", keep="last")
+                        dvh = dvh.drop_duplicates(subset="Dose", keep="first").reset_index(drop=True)
 
                         patient = Patient(dvh)
                         
