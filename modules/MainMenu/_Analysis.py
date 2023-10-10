@@ -341,7 +341,8 @@ def calculateAggregatedDVH(self):
                 plt.plot(v["Volume agg CI upper"].index, v["Volume agg CI upper"], linestyle="-", color=c, linewidth=1, alpha=alpha2)
 
                 # Calculate integral between lower and upper
-                diffDose = v["Dose"][1] - v["Dose"][0]
+                # BUGFIX 2023-10-10: Changed from v["Dose"] to v.index, since this is how the information was stored
+                diffDose = v.index[1] - v.index[0]
                 v["CI difference"] = (v["Volume agg CI upper"] - v["Volume agg CI lower"]) * diffDose
                 area = v["CI difference"].sum()
                 self.log(f"{self.dvhConfidenceInterval.get()} % CI area for {k}: {area:.3f}")
