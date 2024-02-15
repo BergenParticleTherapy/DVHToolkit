@@ -7,7 +7,7 @@
 #        trusted since its limit depend on the cohort in question (and the cohort is BSd)
 #   -> More trust in CI method now. Best to use for tox asymmetry is profile likelihood.
 # - Fixed ECLIPSE loading
-# - Added "plan" options for choosing Eclipse patients
+# - Added "plan" options for choosing Eclipse patients 
 # - Switched to "python" engine for reading CSV files, a bit more stable...
 
 # Changelog version 1.11 (Released 2019-02-15)

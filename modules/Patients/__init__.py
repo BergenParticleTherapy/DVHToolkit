@@ -266,9 +266,9 @@ class Patients:
 				planLength.append(1000000)
 
 				structures = zip(structureNames, structureStarts, structureLength, structureMeanDose, structureMinDose, structureMaxDose, structureVolume)
-				plans = zip(planNames, planStarts, planLength)
+				plans = list(zip(planNames, planStarts, planLength)) # List so that it's possible to access more than once
 
-				for structure in structures: # Test this new approach, was zip(structures, plans) and that MUST be wrong: get (s1 p1, s2 p2) missing (s1 p2, s2 p1)
+				for structure in structures:
 					for plan in plans:
 						if match(self.options.structureToUse.get(), structure[0]) and match(self.options.planToUse.get(), plan[0]):
 							if self.options.autodetectDVHHeader.get():
@@ -431,74 +431,82 @@ class Patients:
 				planLength.append(1000000)
 
 				structures = zip(structureNames, structureStarts, structureLength)
-				plans = zip(planNames, planStarts, planLength)
+				plans = list(zip(planNames, planStarts, planLength)) # List so that it's possible to access more than once
 
 				for structure in structures:
-					for plan in plans:
-						if match(self.options.structureToUse.get(), structure[0]) and match(self.options.planToUse.get(), plan[0]):
-							if self.options.autodetectDVHHeader.get():
-								if len(firstDoseLine) == 2:
-									if firstDoseLine[0] == 0:
-											headers = ["Dose", "Volume"]
-									else:
-											headers = ["Volume", "Dose"]
-								else:
-									print(f"Could not identify structure: {firstDoseLine}, please input custom DVH header.")
-									headers = self.options.customDVHHeader.get().split(",")
+					matchStructure = match(self.options.structureToUse.get(), structure[0])
 
+					if not matchStructure:
+						continue
+
+					for plan in plans:
+						matchPlan = match(self.options.planToUse.get(), plan[0])
+						if not matchPlan:
+							continue
+
+						if self.options.autodetectDVHHeader.get():
+							if len(firstDoseLine) == 2:
+								if firstDoseLine[0] == 0:
+									headers = ["Dose", "Volume"]
+								else:
+									headers = ["Volume", "Dose"]
 							else:
+								print(f"Could not identify structure: {firstDoseLine}, please input custom DVH header.")
 								headers = self.options.customDVHHeader.get().split(",")
 
-							dvh = pd.read_csv(self.getFilePath(filename), header=None, names=headers,
-													usecols=["Dose", "Volume"], decimal=".", sep="\s+",
-													skiprows=structure[1], nrows=structure[2], engine="python")
+						else:
+							headers = self.options.customDVHHeader.get().split(",")
 
-							# Create Patient object with DVH data
-							if self.options.doseUnit.get() == 'autodetect' and not self.doseUnit:
-								maxDose = dvh["Dose"].max()
-								if maxDose > 1000:
-									doseUnit = self.options.cGy
-								else:
-									doseUnit = self.options.Gy
-								self.doseUnit = doseUnit
-							elif self.doseUnit:
-								doseUnit = self.doseUnit
+						dvh = pd.read_csv(self.getFilePath(filename), header=None, names=headers,
+												usecols=["Dose", "Volume"], decimal=".", sep="\s+",
+												skiprows=structure[1], nrows=structure[2], engine="python")
+
+						# Create Patient object with DVH data
+						if self.options.doseUnit.get() == 'autodetect' and not self.doseUnit:
+							maxDose = dvh["Dose"].max()
+							if maxDose > 1000:
+								doseUnit = self.options.cGy
 							else:
-								doseUnit = self.options.doseUnit.get() == "cGy" and self.options.cGy or self.options.Gy
+								doseUnit = self.options.Gy
+							self.doseUnit = doseUnit
+						elif self.doseUnit:
+							doseUnit = self.doseUnit
+						else:
+							doseUnit = self.options.doseUnit.get() == "cGy" and self.options.cGy or self.options.Gy
 
-							n += 1
-							dvh["Dose"] = dvh["Dose"] * doseUnit
-							maxVolume = dvh["Volume"].at[0]
-							dvh["Volume"] = dvh["Volume"] * 100 / maxVolume
+						n += 1
+						dvh["Dose"] = dvh["Dose"] * doseUnit
+						maxVolume = dvh["Volume"].at[0]
+						dvh["Volume"] = dvh["Volume"] * 100 / maxVolume
 
-							dvh = dvh[dvh["Volume"] > 0]
+						dvh = dvh[dvh["Volume"] > 0]
 
-							# remove duplicate dose = 0 rows FROM top
-							dvh = dvh.drop_duplicates(subset="Dose", keep="first").reset_index(drop=True)
+						# remove duplicate dose = 0 rows FROM top
+						dvh = dvh.drop_duplicates(subset="Dose", keep="first").reset_index(drop=True)
 
-							patient = Patient(dvh)
-							
-							patient.setStructure(structure[0])
-							# patient.setPlan(plan[0])
-							patient.setPlan(planNames[0])
-							patientName = filename[:-4]
-							patient.setCohort(self.dataFolder.split("/")[-1])
-							patient.setDataFolder(self.dataFolder)
-							patient.setID(f"{patientName}_{patient.getPlan()}_{patient.getStructure()}")
+						patient = Patient(dvh)
+						
+						patient.setStructure(structure[0])
+						patient.setPlan(plan[0])
+						# patient.setPlan(planNames[0])
+						patientName = filename[:-4]
+						patient.setCohort(self.dataFolder.split("/")[-1])
+						patient.setDataFolder(self.dataFolder)
+						patient.setID(f"{patientName}_{patient.getPlan()}_{patient.getStructure()}")
 
-							if self.options.loadToxFromFilename.get():
-								patient.setTox("tox" in filename.lower())
-							else:
-								try:
-									patient.setTox(toxDict[patient.ID])
-								except:
-									log.append("Could not find patient %s in %s_tox.csv, skipping patient." % (patient.ID, self.dataFolder))
-									continue
+						if self.options.loadToxFromFilename.get():
+							patient.setTox("tox" in filename.lower())
+						else:
+							try:
+								patient.setTox(toxDict[patient.ID])
+							except:
+								log.append("Could not find patient %s in %s_tox.csv, skipping patient." % (patient.ID, self.dataFolder))
+								continue
 
-							# Add object to dictionary
-							self.cohort = self.dataFolder.split("/")[-1]
-							self.structure = structure[0]
-							self.patients[patient.getID()] = patient
+						# Add object to dictionary
+						self.cohort = self.dataFolder.split("/")[-1]
+						self.structure = structure[0]
+						self.patients[patient.getID()] = patient
 
 		progress['value'] = 0
 		return log
