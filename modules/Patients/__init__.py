@@ -331,8 +331,11 @@ class Patients:
 
 							patient = Patient(dvh)
 								
-							patient.setStructure(structure[0])
-							patient.setPlan(plan[0])
+							planName = sanitizeName(plan[0])
+							structureName = sanitizeName(structure[0])
+
+							patient.setStructure(structureName)
+							patient.setPlan(planName)
 							patientName = filename[:-4]
 							patient.setCohort(self.dataFolder.split("/")[-1])
 							patient.setDataFolder(self.dataFolder)
@@ -353,7 +356,7 @@ class Patients:
 
 							# Add object to dictionary
 							self.cohort = self.dataFolder.split("/")[-1]
-							self.structure = structure[0]
+							self.structure = structureName
 							self.patients[patient.getID()] = patient
 
 		progress['value'] = 0
@@ -486,8 +489,11 @@ class Patients:
 
 						patient = Patient(dvh)
 						
-						patient.setStructure(structure[0])
-						patient.setPlan(plan[0])
+						structureName = sanitizeName(structure[0])
+						planName = sanitizeName(plan[0])
+
+						patient.setStructure(structureName)
+						patient.setPlan(planName)
 						# patient.setPlan(planNames[0])
 						patientName = filename[:-4]
 						patient.setCohort(self.dataFolder.split("/")[-1])
@@ -505,7 +511,7 @@ class Patients:
 
 						# Add object to dictionary
 						self.cohort = self.dataFolder.split("/")[-1]
-						self.structure = structure[0]
+						self.structure = structureName
 						self.patients[patient.getID()] = patient
 
 		progress['value'] = 0
