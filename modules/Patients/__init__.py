@@ -336,7 +336,7 @@ class Patients:
 
 							patient.setStructure(structureName)
 							patient.setPlan(planName)
-							patientName = filename[:-4]
+							patientName = sanitizeName(filename[:-4])
 							patient.setCohort(self.dataFolder.split("/")[-1])
 							patient.setDataFolder(self.dataFolder)
 							patient.setID(f"{patientName}_{patient.getPlan()}_{patient.getStructure()}")
@@ -617,7 +617,7 @@ class Patients:
 				dvh["Volume"] = dvh["Volume"] * 100 / maxVolume
 
 				patient = Patient(dvh)
-				patientName = filename[:-4]
+				patientName = sanitizeName(filename[:-4])
 
 				patient.setCohort(self.dataFolder.split("/")[-1])
 				patient.setDataFolder(self.dataFolder)
