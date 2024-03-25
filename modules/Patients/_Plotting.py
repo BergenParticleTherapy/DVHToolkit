@@ -1,10 +1,8 @@
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import math
 
 from tkinter import *
-from tkinter import ttk
 
 from ..Tools import *
 

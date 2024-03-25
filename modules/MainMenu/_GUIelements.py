@@ -8,7 +8,6 @@ from functools import partial
 import math
 
 from tkinter import *
-from tkinter import ttk
 from tkinter import filedialog
 
 from ..Patients import *
@@ -1209,6 +1208,8 @@ def aggregateDVHCommand(self):
 	self.styleContainer2.pack(anchor=W)
 	self.styleContainer3 = Frame(self.window)
 	self.styleContainer3.pack(anchor=W)
+	self.styleContainerPercentile = Frame(self.window)
+	self.styleContainerPercentile.pack(anchor=W)
 	self.styleContainer35 = Frame(self.window)
 	self.styleContainer35.pack(anchor=W)
 	self.styleContainer4 = Frame(self.window)
@@ -1224,10 +1225,12 @@ def aggregateDVHCommand(self):
 	self.dvhStyleVar1 = StringVar(value="median")
 	self.dvhStyleVar2 = StringVar(value="compare")
 	self.dvhStyleVar3 = IntVar(value=0)
+	self.dvhStyleVarPercentile = IntVar(value=0)
 	self.dvhSaveAggDVH = IntVar(value=0)
 	self.dvhStyleSinglePlot = IntVar(value=1)
 	self.dvhStyleBlackPlot = IntVar(value=0)
 	self.dvhConfidenceInterval = DoubleVar(value=95)
+	self.dvhPercentileInterval = DoubleVar(value=10)
 
 	colorVarList = list()
 
@@ -1260,6 +1263,12 @@ def aggregateDVHCommand(self):
 	Label(self.styleContainer3, text="% confidence interval: ").pack(side=LEFT, anchor=W)
 	for text, mode in [["Yes", 1], ["No",0]]:
 		Radiobutton(self.styleContainer3, text=text, value=mode, variable=self.dvhStyleVar3).pack(side=LEFT, anchor=W)
+
+	Label(self.styleContainerPercentile, text="Draw ").pack(side=LEFT, anchor=W)
+	Entry(self.styleContainerPercentile, textvariable=self.dvhPercentileInterval, width=6).pack(side=LEFT, anchor=W)
+	Label(self.styleContainerPercentile, text="% percentile(s): ").pack(side=LEFT, anchor=W)
+	for text, mode in [["Yes", 1], ["No",0]]:
+		Radiobutton(self.styleContainerPercentile, text=text, value=mode, variable=self.dvhStyleVarPercentile).pack(side=LEFT, anchor=W)
 
 	Checkbutton(self.styleContainer35, text="Black/white plot? ", variable=self.dvhStyleBlackPlot).pack(anchor=W)
 	Checkbutton(self.styleContainer4, text="Single plot window? ", variable=self.dvhStyleSinglePlot).pack(anchor=W)
@@ -1360,14 +1369,14 @@ def packCustomAggregateDVHCommand(self, value):
 				structureContainer.pack(anchor=W)
 				Label(structureContainer, text="Match structures: ").pack(anchor=W, side=LEFT)
 				Entry(structureContainer, textvariable=self.aggregateGridOptions[xy]["structureRegex"], width=25).pack(anchor=W, side=LEFT)
-				Tooltip(structureContainer, text=f"Match using * (wildcard) and | (multiple)", wraplength=self.wraplength)
+				Tooltip(structureContainer, text="Match using * (wildcard) and | (multiple)", wraplength=self.wraplength)
 				Label(structureContainer, textvariable=self.aggregateGridOptions[xy]["structureMatchString"]).pack(side=LEFT, anchor=W)
 				
 				planContainer = Frame(self.aggregateGridContainers[xy])
 				planContainer.pack(anchor=W)
 				Label(planContainer, text="Match plans: ").pack(anchor=W, side=LEFT)
 				Entry(planContainer, textvariable=self.aggregateGridOptions[xy]["planRegex"], width=25).pack(anchor=W, side=LEFT)
-				Tooltip(planContainer, text=f"Match using * (wildcard) and | (multiple)", wraplength=self.wraplength)
+				Tooltip(planContainer, text="Match using * (wildcard) and | (multiple)", wraplength=self.wraplength)
 				Label(planContainer, textvariable=self.aggregateGridOptions[xy]["planMatchString"]).pack(side=LEFT, anchor=W)
 
 
@@ -1550,14 +1559,14 @@ def changeNamingQuitAndSaveCommand(self):
 	for patientsInCohort in list(self.patients.values()):
 		for patient in list(patientsInCohort.patients.values()):
 				plan = patient.getPlan()
-				if not plan in self.plansAfter:
+				if plan not in self.plansAfter:
 					for d in self.planSubstituteList:
 						if len(d['from'].get()):
 								plan = sub(d['from'].get(), d['to'].get(), plan)
 					patient.setPlan(plan)
 
 				structure = patient.getStructure()
-				if not structure in self.structuresAfter:
+				if structure not in self.structuresAfter:
 					for d in self.structureSubstituteList:
 						if len(d['from'].get()):
 								structure = sub(d['from'].get(), d['to'].get(), structure)
@@ -1682,38 +1691,3 @@ def timeDependencyCommand(self):
 				k['state'] = 'disabled'
 		for k in self.paramGammaEntry:
 				k['state'] = 'disabled'
-
-# IS THIS NECESSARY !!! IT'S ALREADY UNDER PATIENTS
-# def resetIdx(self):
-#     self.idx = {'n': 0, 'm': 1, 'TD50': 2, 'lambda': 3, 'gamma': 4}
-#     if self.options.fixN.get():
-#         self.idx['m'] -= 1
-#         self.idx['TD50'] -= 1
-#         self.idx['lambda'] -= 1
-#         self.idx['gamma'] -= 1
-
-#     if self.options.fixM.get():
-#         self.idx['TD50'] -= 1
-#         self.idx['lambda'] -= 1
-#         self.idx['gamma'] -= 1
-
-#     if self.options.fixTD50.get():
-#         self.idx['lambda'] -= 1
-#         self.idx['gamma'] -= 1
-
-#     if self.options.fixLambda.get():
-#         self.idx['gamma'] -= 1
-
-#     if self.options.NTCPcalculation.get() == "Logit":  # Reset lambda / gamma paramters if so
-#         self.idx = {'a': 0, 'b': 1, 'lambda': 2, 'gamma': 3}
-#         if self.options.fixA.get():
-#             self.idx['b'] -= 1
-#             self.idx['lambda'] -= 1
-#             self.idx['gamma'] -= 1
-
-#         if self.options.fixB.get():
-#             self.idx['lambda'] -= 1
-#             self.idx['gamma'] -= 1
-
-#         if self.options.fixLambda.get():
-#             self.idx['gamma'] -= 1

@@ -183,7 +183,7 @@ class ParameterSpace:
         pString = ", ".join([f"{k} = {v:.3f}" for k, v in self.parameters.items()])
         self.print2(f"Using the {self.bootstrapCorrectionMethod} pivot bias correction method, the corrected best fits were {pString}.")
 
-        self.print2(f"The bias corrected bootstrapped confidence intervals were:")
+        self.print2("The bias corrected bootstrapped confidence intervals were:")
         for p in self.parameters.keys():
             self.print2(f"{p}\t= [{self.CI[p][0]:.2f}, {self.CI[p][1]:.2f}]")
 
@@ -264,7 +264,7 @@ class ParameterSpace:
             axs[idx].plot(self.parameterSpace["a"][filter_68], self.parameterSpace["b"][filter_68], 'o', c="green", zorder=10, label="Within 68% LLH")
             axs[idx].legend()
             axs[idx].set_xlabel("a parameter")
-            axs[idx].set_ylabel(f"b parameter")
+            axs[idx].set_ylabel("b parameter")
             axs[idx].set_title(f"a vs b for {self.cohort}")
 
         idx += 1
@@ -273,7 +273,7 @@ class ParameterSpace:
         axs[idx].set_title(f"Log Likelihood for {self.cohort}")
 
     def writeToFile(self, patients=None):
-        with open(f"Output/bootstrapParameterSpace.csv", "w") as out:
+        with open("Output/bootstrapParameterSpace.csv", "w") as out:
             if self.model == "LKB":
                 out.write("cohort,n,m,TD50,Original Nagelkerke R2,Original McFadden R2,Test Nagelkerke R2,Test McFadden R2,Training Nagelkerke R2,Training McFadden R2,")
                 for name, patient in list(patients.items()):

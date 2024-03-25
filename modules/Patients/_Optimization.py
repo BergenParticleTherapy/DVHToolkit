@@ -5,10 +5,8 @@ import scipy.stats as st
 from scipy.optimize import basinhopping
 
 from tkinter import *
-from tkinter import ttk
 
 from ..Tools import *
-from time import perf_counter
 
 class Result:
     def __init__(self, fun, x):

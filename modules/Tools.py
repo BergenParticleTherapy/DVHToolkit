@@ -1,6 +1,5 @@
 from math import *
 import numba as nb
-import numpy as np
 
 @nb.njit
 def HPM(x):

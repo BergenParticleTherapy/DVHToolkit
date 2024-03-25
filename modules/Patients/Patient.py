@@ -1,11 +1,9 @@
 import os
 from math import *
-import pandas as pd
 import numpy as np
 import numba as nb
 from bisect import bisect_left
 from tkinter import *
-from matplotlib import pyplot as plt
 
 @nb.njit
 def njitGetGEUD(n, nList, GEUDlist):

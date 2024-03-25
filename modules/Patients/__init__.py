@@ -100,7 +100,7 @@ class Patients:
 		for root, d, f, in os.walk(self.dataFolder):
 				for filename in f:
 					# if not ".txt" in filename[-4:] and not ".dvh" in filename[-4]: continue
-					if not filename[-4:] in [".txt", ".dvh"]:
+					if filename[-4:] not in [".txt", ".dvh"]:
 						continue
 					if "gEUD" in filename:
 						continue
@@ -119,7 +119,7 @@ class Patients:
 		planNames = []
 		for root, d, f, in os.walk(self.dataFolder):
 				for filename in f:
-					if not filename[-4:] in [".txt", ".dvh"]:
+					if filename[-4:] not in [".txt", ".dvh"]:
 						continue
 					if "gEUD" in filename:
 						continue
@@ -141,7 +141,7 @@ class Patients:
 		nPatients = 0
 		for root, d, f in os.walk(self.dataFolder):
 			for filename in f:
-				if not ".txt" in filename[-4:] and not ".dvh" in filename[-4]:
+				if ".txt" not in filename[-4:] and ".dvh" not in filename[-4]:
 					continue
 				if "gEUD" in filename:
 					continue
@@ -176,7 +176,7 @@ class Patients:
 
 		for root, d, f, in os.walk(self.dataFolder):
 			for filename in f:
-				if not ".txt" in filename[-4:]:
+				if ".txt" not in filename[-4:]:
 					continue
 				if "gEUD" in filename:
 					continue
@@ -241,7 +241,7 @@ class Patients:
 							if "Mean Dose [" in line:
 								structureMeanDose.append(float(line.split(": ")[-1]))
 
-							if "Volume [" in line and not "Total Structure" in line and not "Structure Volume" in line:
+							if "Volume [" in line and "Total Structure" not in line and "Structure Volume" not in line:
 								structureVolume.append(float(line.split(": ")[-1]))
 
 						if "Dose [" in line and "Volume [" in line:
@@ -265,99 +265,104 @@ class Patients:
 				structureLength.append(1000000)
 				planLength.append(1000000)
 
-				structures = zip(structureNames, structureStarts, structureLength, structureMeanDose, structureMinDose, structureMaxDose, structureVolume)
+				structures = list(zip(structureNames, structureStarts, structureLength, structureMeanDose, structureMinDose, structureMaxDose, structureVolume))
 				plans = list(zip(planNames, planStarts, planLength)) # List so that it's possible to access more than once
 
 				for structure in structures:
+					if not match(self.options.structureToUse.get(), structure[0]):
+						continue
+
 					for plan in plans:
-						if match(self.options.structureToUse.get(), structure[0]) and match(self.options.planToUse.get(), plan[0]):
-							if self.options.autodetectDVHHeader.get():
-								header_dict = {"Dose [Gy]": "Dose", "Dose [cGy]": "Dose", "Ratio of Total Structure Volume [%]": "Volume",
-													"Structure Volume [cmÂ³]": "Volume", "Relative dose [%]": "Relative dose"}
+						if not match(self.options.planToUse.get(), plan[0]):
+							continue
 
-								possible_headers = list(header_dict.keys())
+						if self.options.autodetectDVHHeader.get():
+							header_dict = {"Dose [Gy]": "Dose", "Dose [cGy]": "Dose", "Ratio of Total Structure Volume [%]": "Volume",
+												"Structure Volume [cmÂ³]": "Volume", "Relative dose [%]": "Relative dose"}
 
-								header_index = list()
-								for header in possible_headers:
-									try:
-											header_index.append(doseHeaderLine.index(header))
-									except:
-											header_index.append(99)
-											pass
+							possible_headers = list(header_dict.keys())
 
-								header_index = [header_index.index(k) for k in sorted(header_index) if k != 99]
-								identified_headers = np.array(possible_headers)[header_index]
-								headers = [header_dict[k] for k in np.array(possible_headers)[header_index] if k in header_dict]
-								if not printedLogOutput:
-									#printedLogOutput = True
-									log.append(f"Identified the following ECLIPSE DVH header structure for file {filename}: {headers}")
-
-							else:
+							header_index = list()
+							for header in possible_headers:
 								try:
-									headers = self.options.customDVHHeader.get().split(",")
+										header_index.append(doseHeaderLine.index(header))
 								except:
-									print(f"Could not identify structure: {doseHeaderLine}, please input custom DVH header.")
-									headers = ["Dose", "Relative dose", "Volume"]
+										header_index.append(99)
+										pass
 
+							header_index = [header_index.index(k) for k in sorted(header_index) if k != 99]
+							identified_headers = np.array(possible_headers)[header_index]
+							headers = [header_dict[k] for k in np.array(possible_headers)[header_index] if k in header_dict]
+							if not printedLogOutput:
+								#printedLogOutput = True
+								log.append(f"Identified the following ECLIPSE DVH header structure for file {filename}: {headers}")
+
+						else:
+							try:
+								headers = self.options.customDVHHeader.get().split(",")
+							except:
+								print(f"Could not identify structure: {doseHeaderLine}, please input custom DVH header.")
+								headers = ["Dose", "Relative dose", "Volume"]
+
+						dvh = pd.read_csv(self.getFilePath(filename), header=None, names=headers,
+												usecols=["Dose", "Volume"], decimal=".", sep="\s+",
+												skiprows=structure[1], nrows=structure[2], engine="python")
+
+						if np.sum(dvh.isnull().values):
+							headers = ["Dose", "Volume"]
 							dvh = pd.read_csv(self.getFilePath(filename), header=None, names=headers,
 													usecols=["Dose", "Volume"], decimal=".", sep="\s+",
 													skiprows=structure[1], nrows=structure[2], engine="python")
 
-							if np.sum(dvh.isnull().values):
-								headers = ["Dose", "Volume"]
-								dvh = pd.read_csv(self.getFilePath(filename), header=None, names=headers,
-														usecols=["Dose", "Volume"], decimal=".", sep="\s+",
-														skiprows=structure[1], nrows=structure[2], engine="python")
-
-							# Create Patient object with DVH data
-							if self.options.doseUnit.get() == 'autodetect' and not self.doseUnit:
-								maxDose = dvh["Dose"].max()
-								if maxDose > 1000:
-									doseUnit = self.options.cGy
-								else:
-									doseUnit = self.options.Gy
-								self.doseUnit = doseUnit
-							elif self.doseUnit:
-								doseUnit = self.doseUnit
+						# Create Patient object with DVH data
+						if self.options.doseUnit.get() == 'autodetect' and not self.doseUnit:
+							maxDose = dvh["Dose"].max()
+							if maxDose > 1000:
+								doseUnit = self.options.cGy
 							else:
-								doseUnit = self.options.doseUnit.get() == "cGy" and self.options.cGy or self.options.Gy
+								doseUnit = self.options.Gy
+							self.doseUnit = doseUnit
+						elif self.doseUnit:
+							doseUnit = self.doseUnit
+						else:
+							doseUnit = self.options.doseUnit.get() == "cGy" and self.options.cGy or self.options.Gy
 
-							n += 1
-							dvh["Dose"] = dvh["Dose"] * doseUnit
-							maxVolume = dvh["Volume"].at[0]
-							dvh["Volume"] = dvh["Volume"] * 100 / maxVolume
+						n += 1
+						dvh["Dose"] = dvh["Dose"] * doseUnit
+						maxVolume = dvh["Volume"].at[0]
+						dvh["Volume"] = dvh["Volume"] * 100 / maxVolume
 
-							dvh = dvh[dvh["Volume"] > 0]
+						dvh = dvh[dvh["Volume"] > 0]
 
-							patient = Patient(dvh)
+						patient = Patient(dvh)
 								
-							planName = sanitizeName(plan[0])
-							structureName = sanitizeName(structure[0])
+						planName = sanitizeName(plan[0])
+						structureName = sanitizeName(structure[0])
 
-							patient.setStructure(structureName)
-							patient.setPlan(planName)
-							patientName = sanitizeName(filename[:-4])
-							patient.setCohort(self.dataFolder.split("/")[-1])
-							patient.setDataFolder(self.dataFolder)
-							patient.setID(f"{patientName}_{patient.getPlan()}_{patient.getStructure()}")
-							patient.setMeanDoseFromEclipse(structure[3] * doseUnit)
-							patient.setMinDoseFromEclipse(structure[4] * doseUnit)
-							patient.setMaxDoseFromEclipse(structure[5] * doseUnit)
-							patient.setVolumeFromEclipse(structure[6])
+						patient.setStructure(structureName)
+						patient.setPlan(planName)
+						patientName = sanitizeName(filename[:-4])
+						patient.setCohort(self.dataFolder.split("/")[-1])
+						patient.setDataFolder(self.dataFolder)
+						patient.setID(f"{patientName}_{patient.getPlan()}_{patient.getStructure()}")
+						patient.setMeanDoseFromEclipse(structure[3] * doseUnit)
+						patient.setMinDoseFromEclipse(structure[4] * doseUnit)
+						patient.setMaxDoseFromEclipse(structure[5] * doseUnit)
+						patient.setVolumeFromEclipse(structure[6])
 							
-							if self.options.loadToxFromFilename.get():
-								patient.setTox("tox" in filename.lower())
-							else:
-								try:
-									patient.setTox(toxDict[patient.ID])
-								except:
-									log.append("Could not find patient %s in %s_tox.csv, skipping patient." % (patient.ID, self.dataFolder))
-									continue
+						if self.options.loadToxFromFilename.get():
+							patient.setTox("tox" in filename.lower())
+						else:
+							try:
+								patient.setTox(toxDict[patient.ID])
+							except:
+								log.append("Could not find patient %s in %s_tox.csv, skipping patient." % (patient.ID, self.dataFolder))
+								continue
 
-							# Add object to dictionary
-							self.cohort = self.dataFolder.split("/")[-1]
-							self.structure = structureName
-							self.patients[patient.getID()] = patient
+						# Add object to dictionary
+						self.cohort = self.dataFolder.split("/")[-1]
+						self.structure = structureName
+						self.patients[patient.getID()] = patient
 
 		progress['value'] = 0
 		return log
@@ -388,7 +393,7 @@ class Patients:
 
 		for root, d, f, in os.walk(self.dataFolder):
 			for filename in f:
-				if not filename[-4:] in [".txt", ".dvh"]:
+				if filename[-4:] not in [".txt", ".dvh"]:
 					continue
 				if "gEUD" in filename:
 					continue
@@ -424,7 +429,7 @@ class Patients:
 							structureStarts.append(idx + 1)
 							planStarts.append(idx + 1)
 
-						if not "#" in line and not firstDoseLine:
+						if "#" not in line and not firstDoseLine:
 							firstDoseLine = [float(k) for k in line.split("\t")]
 
 						idx += 1
@@ -433,7 +438,7 @@ class Patients:
 				structureLength.append(1000000)
 				planLength.append(1000000)
 
-				structures = zip(structureNames, structureStarts, structureLength)
+				structures = list(zip(structureNames, structureStarts, structureLength))
 				plans = list(zip(planNames, planStarts, planLength)) # List so that it's possible to access more than once
 
 				for structure in structures:
@@ -533,7 +538,7 @@ class Patients:
 		nFiles = 0
 		for root, d, f, in os.walk(self.dataFolder):
 			for filename in f:
-				if not "gEUD" in filename:
+				if "gEUD" not in filename:
 					nFiles += 1
 		progress['maximum'] = nFiles
 
