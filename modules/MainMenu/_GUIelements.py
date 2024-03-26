@@ -1230,7 +1230,7 @@ def aggregateDVHCommand(self):
 	self.dvhStyleSinglePlot = IntVar(value=1)
 	self.dvhStyleBlackPlot = IntVar(value=0)
 	self.dvhConfidenceInterval = DoubleVar(value=95)
-	self.dvhPercentileInterval = DoubleVar(value=10)
+	self.dvhPercentileInterval = StringVar(value="10")
 
 	colorVarList = list()
 
@@ -1254,8 +1254,11 @@ def aggregateDVHCommand(self):
 	for text, mode in [["Median", "median"], ["Mean", "mean"]]:
 		Radiobutton(self.styleContainer, text=text, value=mode, variable=self.dvhStyleVar1).pack(side=LEFT, anchor=W)
 		
-	for text, mode in [["Compare plans per structure (agg patients)", "compare"], ["Aggregate plans within patient", "comparePlans"], ["Compare tox vs no tox", "showAll"], ["Subtract [mean/median of all px]", "subtract"],
-								["Mean/median [subtract per patient]", "subtractPerPatient"]]:
+	for text, mode in [["Compare plans per structure (agg patients)", "compare"], 
+							 ["Aggregate plans within patient", "comparePlans"], 
+							 ["Compare tox vs no tox", "showAll"], 
+							 ["Subtract [mean/median of all px]", "subtract"],
+							 ["Mean/median [subtract per patient]", "subtractPerPatient"]]:
 		Radiobutton(self.styleContainer2, text=text, value=mode, variable=self.dvhStyleVar2).pack(anchor=W)
 	
 	Label(self.styleContainer3, text="Draw ").pack(side=LEFT, anchor=W)
@@ -1265,10 +1268,12 @@ def aggregateDVHCommand(self):
 		Radiobutton(self.styleContainer3, text=text, value=mode, variable=self.dvhStyleVar3).pack(side=LEFT, anchor=W)
 
 	Label(self.styleContainerPercentile, text="Draw ").pack(side=LEFT, anchor=W)
-	Entry(self.styleContainerPercentile, textvariable=self.dvhPercentileInterval, width=6).pack(side=LEFT, anchor=W)
+	Entry(self.styleContainerPercentile, textvariable=self.dvhPercentileInterval, width=8).pack(side=LEFT, anchor=W)
 	Label(self.styleContainerPercentile, text="% percentile(s): ").pack(side=LEFT, anchor=W)
 	for text, mode in [["Yes", 1], ["No",0]]:
 		Radiobutton(self.styleContainerPercentile, text=text, value=mode, variable=self.dvhStyleVarPercentile).pack(side=LEFT, anchor=W)
+	Tooltip(self.styleContainerPercentile, text=f"Use ',' for multiple values. A shaded area will be drawn between the smallest and largest percentile.",
+				wraplength=self.wraplength)
 
 	Checkbutton(self.styleContainer35, text="Black/white plot? ", variable=self.dvhStyleBlackPlot).pack(anchor=W)
 	Checkbutton(self.styleContainer4, text="Single plot window? ", variable=self.dvhStyleSinglePlot).pack(anchor=W)
@@ -1496,8 +1501,17 @@ def changeNamingCommand(self):
 
 def calculateNewNamesCommand(self):
 	def sub(a,b,txt):
-		a = a.replace("*", ".*")
-		b = b.replace("*", ".*")
+		if a == "*":
+			# To avoid matching twice and repeating the plan / structure name
+			a = "^.*"
+		else:
+			a = a.replace("*", ".*")
+		if b == "*":
+			# To avoid matching twice and repeating the plan / structure name
+			b = "^.*"
+		else:
+			b = b.replace("*", ".*")
+
 		return re.sub(a,b,txt)
 	
 	self.structuresAfter.clear()
@@ -1512,16 +1526,18 @@ def calculateNewNamesCommand(self):
 				numberOfSubstitutions['structure'] += 1
 
 	for plan in self.plansBefore:
+		new_plan = plan
 		for d in self.planSubstituteList:
 				if len(d['from'].get()):
-					plan = sub(d['from'].get(), d['to'].get(), plan)
-		self.plansAfter.add(plan)
+					new_plan = sub(d['from'].get(), d['to'].get(), plan)
+		self.plansAfter.add(new_plan)
 
 	for structure in self.structuresBefore:
+		new_structure = structure
 		for d in self.structureSubstituteList:
 				if len(d['from'].get()):
-					structure = sub(d['from'].get(), d['to'].get(), structure)
-		self.structuresAfter.add(structure)
+					new_structure = sub(d['from'].get(), d['to'].get(), structure)
+		self.structuresAfter.add(new_structure)
 
 	self.drawPlanAndStructureNames()
 

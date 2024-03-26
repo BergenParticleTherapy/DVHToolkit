@@ -308,6 +308,9 @@ class Patients:
 												usecols=["Dose", "Volume"], decimal=".", sep="\s+",
 												skiprows=structure[1], nrows=structure[2], engine="python")
 
+						if dvh.empty:
+							continue
+
 						if np.sum(dvh.isnull().values):
 							headers = ["Dose", "Volume"]
 							dvh = pd.read_csv(self.getFilePath(filename), header=None, names=headers,
@@ -469,6 +472,9 @@ class Patients:
 												usecols=["Dose", "Volume"], decimal=".", sep="\s+",
 												skiprows=structure[1], nrows=structure[2], engine="python")
 
+						if dvh.empty:
+							continue
+
 						# Create Patient object with DVH data
 						if self.options.doseUnit.get() == 'autodetect' and not self.doseUnit:
 							maxDose = dvh["Dose"].max()
@@ -484,6 +490,7 @@ class Patients:
 
 						n += 1
 						dvh["Dose"] = dvh["Dose"] * doseUnit
+
 						maxVolume = dvh["Volume"].at[0]
 						dvh["Volume"] = dvh["Volume"] * 100 / maxVolume
 
