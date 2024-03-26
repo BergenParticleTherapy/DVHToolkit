@@ -637,7 +637,7 @@ def calculateAggregatedDVH(self):
 							custom_lines[""] = Line2D([],[],linestyle='')
 							for k,v in zip(plans, colors):
 								qps = self.dvhPercentileInterval.get().split(",")
-								for qp_raw in sorted(qps, reverse=True):
+								for qp_raw in sorted(qps, reverse=True, key=int):
 									qp_str = perc(int(qp_raw))
 									custom_lines[f"{qp_str} percentile"] \
 											= Line2D([0], [0], color=v, ls="--", lw=2)
@@ -649,7 +649,7 @@ def calculateAggregatedDVH(self):
 							custom_lines[""] = Line2D([],[],linestyle='')
 							for k,v in zip(plans, colors):
 								qps = self.dvhPercentileInterval.get().split(",")
-								for qp_raw in sorted(qps, reverse=True):
+								for qp_raw in sorted(qps, reverse=True, key=int):
 									qp_str = perc(int(qp_raw))
 									custom_lines[f"{qp_str} percentile ({k})"] \
 											= Line2D([0], [0], color="k", ls="--", lw=2)
@@ -661,7 +661,7 @@ def calculateAggregatedDVH(self):
 						custom_lines2[""] = Line2D([],[],linestyle='')
 						for k,v in cleaned_colorVarDict.items():
 							qp_raw = self.dvhPercentileInterval.get().split(",")
-							for qp_raw in sorted(qps, reverse=True):
+							for qp_raw in sorted(qps, reverse=True, key=int):
 								qp_str = perc(int(qp_raw))
 								custom_lines2[f"{qp_str} percentile ({k})"] \
 											= Line2D([0], [0], color=v, ls="--", lw=2)
