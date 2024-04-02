@@ -497,12 +497,16 @@ def calculateAggregatedDVH(self):
 				if not self.useCustomAggregateDVHPlot:
 					plt.figure(figsize=(10,7.5), num = fignum)
 
-				try:
-					ls = style[styleIdx[plan]]
-				except:
-					ls = '-'
+				# try:
+				# 	ls = style[styleIdx[plan]]
+				# except:
+				# 	ls = '-'
 
+				ls = '-'
 				c = self.colorVarList[structure].get()
+
+				if len(plans) > 1:
+					c = colors[styleIdx[plan]]
 
 				if ":" in c:
 					alpha1 = float(c.split(":")[-1])
@@ -580,7 +584,7 @@ def calculateAggregatedDVH(self):
 					plt.plot(v["Volume agg"].index, 
 								v["Volume agg"], 
 								linestyle=ls, 
-								color=c, 
+								color=c,
 								linewidth=2, 
 								label=planLabel, 
 								alpha=1)
@@ -640,7 +644,7 @@ def calculateAggregatedDVH(self):
 								for qp_raw in sorted(qps, reverse=True, key=int):
 									qp_str = perc(int(qp_raw))
 									custom_lines[f"{qp_str} percentile"] \
-											= Line2D([0], [0], color=v, ls="--", lw=2)
+											= Line2D([0], [0], color="k", ls="--", lw=2)
 					else:
 						custom_lines = {k:Line2D([0], [0], color="k", ls=ls, lw=2) \
 									for k,v in zip(plans, colors)}
@@ -664,7 +668,7 @@ def calculateAggregatedDVH(self):
 							for qp_raw in sorted(qps, reverse=True, key=int):
 								qp_str = perc(int(qp_raw))
 								custom_lines2[f"{qp_str} percentile ({k})"] \
-											= Line2D([0], [0], color=v, ls="--", lw=2)
+											= Line2D([0], [0], color="k", ls="--", lw=2)
 
 				all_legends = list(custom_lines.values()) + [Line2D([],[],linestyle='')] \
 									+ list(custom_lines2.values())
