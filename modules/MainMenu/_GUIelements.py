@@ -1518,26 +1518,30 @@ def calculateNewNamesCommand(self):
 	self.plansAfter.clear()
 	numberOfSubstitutions = {'plan' : 0, 'structure' : 0}
 
+	# Some error here, try and fix !!
+	# With multiple entries (planSubsituteList? + structure), the end list is 
+	# too long and contains the old names
+
 	for d in self.planSubstituteList:
 		if len(d['from'].get()):
-				numberOfSubstitutions['plan'] += 1
+			numberOfSubstitutions['plan'] += 1
 	for d in self.structureSubstituteList:
 		if len(d['from'].get()):
-				numberOfSubstitutions['structure'] += 1
+			numberOfSubstitutions['structure'] += 1
 
 	for plan in self.plansBefore:
 		new_plan = plan
 		for d in self.planSubstituteList:
-				if len(d['from'].get()):
-					new_plan = sub(d['from'].get(), d['to'].get(), plan)
-		self.plansAfter.add(new_plan)
+			if len(d['from'].get()):
+				new_plan = sub(d['from'].get(), d['to'].get(), plan)
+				self.plansAfter.add(new_plan)
 
 	for structure in self.structuresBefore:
 		new_structure = structure
 		for d in self.structureSubstituteList:
-				if len(d['from'].get()):
-					new_structure = sub(d['from'].get(), d['to'].get(), structure)
-		self.structuresAfter.add(new_structure)
+			if len(d['from'].get()):
+				new_structure = sub(d['from'].get(), d['to'].get(), structure)
+				self.structuresAfter.add(new_structure)
 
 	self.drawPlanAndStructureNames()
 

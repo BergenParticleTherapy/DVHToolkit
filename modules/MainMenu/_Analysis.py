@@ -470,8 +470,8 @@ def calculateAggregatedDVH(self):
 		figs = dict()
 
 		if self.useCustomAggregateDVHPlot:
-				fig, axs = plt.subplots(self.aggregateNrows.get(), self.aggregateNcols.get(), figsize=(13,10), squeeze=False)
-				# axs[y][x]
+			fig, axs = plt.subplots(self.aggregateNrows.get(), self.aggregateNcols.get(), figsize=(13,10), squeeze=False)
+			# axs[y][x]
 		
 		colors = ["red", "orange", "darkgreen", "blue", "lightsalmon", "darkviolet",
 				"gold", "darkred", "indianred", "seagreen", "magenta", "goldenrod"]
@@ -505,7 +505,7 @@ def calculateAggregatedDVH(self):
 				ls = '-'
 				c = self.colorVarList[structure].get()
 
-				if len(plans) > 1:
+				if len(plans) > 1 and len(structures) == 1:
 					c = colors[styleIdx[plan]]
 
 				if ":" in c:
@@ -639,24 +639,24 @@ def calculateAggregatedDVH(self):
 
 						if self.dvhStyleVarPercentile.get():
 							custom_lines[""] = Line2D([],[],linestyle='')
-							for k,v in zip(plans, colors):
-								qps = self.dvhPercentileInterval.get().split(",")
-								for qp_raw in sorted(qps, reverse=True, key=int):
-									qp_str = perc(int(qp_raw))
-									custom_lines[f"{qp_str} percentile"] \
-											= Line2D([0], [0], color="k", ls="--", lw=2)
+							#for k,v in zip(plans, colors):
+							qps = self.dvhPercentileInterval.get().split(",")
+							for qp_raw in sorted(qps, reverse=True, key=int):
+								qp_str = perc(int(qp_raw))
+								custom_lines[f"{qp_str} percentile"] \
+										= Line2D([0], [0], color="k", ls="--", lw=2)
 					else:
 						custom_lines = {k:Line2D([0], [0], color="k", ls=ls, lw=2) \
 									for k,v in zip(plans, colors)}
 
 						if self.dvhStyleVarPercentile.get():
 							custom_lines[""] = Line2D([],[],linestyle='')
-							for k,v in zip(plans, colors):
-								qps = self.dvhPercentileInterval.get().split(",")
-								for qp_raw in sorted(qps, reverse=True, key=int):
-									qp_str = perc(int(qp_raw))
-									custom_lines[f"{qp_str} percentile ({k})"] \
-											= Line2D([0], [0], color="k", ls="--", lw=2)
+							#for k,v in zip(plans, colors):
+							qps = self.dvhPercentileInterval.get().split(",")
+							for qp_raw in sorted(qps, reverse=True, key=int):
+								qp_str = perc(int(qp_raw))
+								custom_lines[f"{qp_str} percentile ({k})"] \
+										= Line2D([0], [0], color="k", ls="--", lw=2)
 
 					custom_lines2 = {k:Line2D([0], [0], color=v, ls="-", lw=2) \
 									for k,v in cleaned_colorVarDict.items()}
@@ -680,10 +680,10 @@ def calculateAggregatedDVH(self):
 					all_legends = list(custom_lines2.values())
 					all_labels = list(custom_lines2.keys())
 
-				if len(list(set(structures))) > 1 or len(list(set(plans))) > 1 or self.dvhStyleVarPercentile.get():
-					plt.legend(all_legends, all_labels, handlelength=3)
+				# if len(list(set(structures))) > 1 or len(list(set(plans))) > 1 or self.dvhStyleVarPercentile.get():
+				plt.legend(all_legends, all_labels, handlelength=3)
 
-			else:
+			else: # customAggregatePlots == True
 				if self.dvhStyleBlackPlot.get():
 					custom_lines = {k:Line2D([0], [0], color="k", ls=style[styleIdx[k]], lw=2) \
 								for k,v in zip(plans, colors)}
@@ -714,9 +714,38 @@ def calculateAggregatedDVH(self):
 							idxs = [ all_labels.index(k) for k in planMatches ] \
 										+ [all_labels.index('')] + [ all_labels.index(k) for k in structureMatches ]
 							axs[y][x].legend(itemgetter(*idxs)(all_legends), 
-												  itemgetter(*idxs)(all_labels), 
-												  handlelength=3)
+													itemgetter(*idxs)(all_labels), 
+													handlelength=3)
 
+		else: # self.dvhStyleSinglePlot.get() == False
+			try:
+				ls = style[styleIdx[k]]
+			except:
+				ls = "-"
+
+			if self.dvhStyleBlackPlot.get():
+				custom_lines = {k:Line2D([0], [0], color="k", ls=ls, lw=2) for k,v in zip(plans, colors)}
+				custom_lines2 = {k:Line2D([0], [0], color="k", ls="-", lw=2) for k,v in cleaned_colorVarDict.items()}
+
+			else:
+				# Loop through plot numbers
+				for structure in structures_sorted:
+					custom_lines = {k:Line2D([0], [0], color=v, ls=ls, lw=2) \
+								for k,v in zip(plans, colors)}
+
+					if self.dvhStyleVarPercentile.get():
+						custom_lines[""] = Line2D([],[],linestyle='')
+							
+						qps = self.dvhPercentileInterval.get().split(",")
+						for qp_raw in sorted(qps, reverse=True, key=int):
+							qp_str = perc(int(qp_raw))
+							custom_lines[f"{qp_str} percentile"] \
+									= Line2D([0], [0], color="k", ls="--", lw=2)
+					
+					all_legends = list(custom_lines.values())
+					all_labels = list(custom_lines.keys())
+
+					plt.legend(all_legends, all_labels, handlelength=3)
 		plt.show()
 				
 	else: # Subtract two cohorts
