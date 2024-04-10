@@ -13,6 +13,29 @@ from tkinter import filedialog
 from ..Patients import *
 from ._Tooltip import Tooltip
 
+def sub(a,b,txt):
+	if a == "*":
+		a = "^.*"
+	else:
+		a = a.replace("*", ".*")
+
+	if b == "*":
+		b = "^.*"
+	else:
+		b = b.replace("*", ".*")
+
+	return re.sub(a,b,txt)
+
+def match(a,txt):
+	a += "$" # Don't match end-of-lines
+
+	if a == "*":
+		a = "^.*"
+	else:
+		a = a.replace("*", ".*")
+
+	return re.match(a, txt)
+
 def myQuit(self):
 	self.options.saveOptions() # to config file
 	self.parent.destroy()
@@ -1391,11 +1414,6 @@ def cancelCustomAggregateDVHCommand(self):
 
 
 def matchCustomAggregateDVHCommand(self):
-	def match(a,b):
-		a += "$" # Don't match end-of-lines
-		a = a.replace("*", ".*") # Use regex type wildcard
-		return re.match(a, b)
-
 	for k,v in self.aggregateGridOptions.items():
 		v["structureMatches"].clear()
 		v["planMatches"].clear()
@@ -1500,27 +1518,9 @@ def changeNamingCommand(self):
 
 
 def calculateNewNamesCommand(self):
-	def sub(a,b,txt):
-		if a == "*":
-			# To avoid matching twice and repeating the plan / structure name
-			a = "^.*"
-		else:
-			a = a.replace("*", ".*")
-		if b == "*":
-			# To avoid matching twice and repeating the plan / structure name
-			b = "^.*"
-		else:
-			b = b.replace("*", ".*")
-
-		return re.sub(a,b,txt)
-	
 	self.structuresAfter.clear()
 	self.plansAfter.clear()
 	numberOfSubstitutions = {'plan' : 0, 'structure' : 0}
-
-	# Some error here, try and fix !!
-	# With multiple entries (planSubsituteList? + structure), the end list is 
-	# too long and contains the old names
 
 	for d in self.planSubstituteList:
 		if len(d['from'].get()):
@@ -1529,19 +1529,35 @@ def calculateNewNamesCommand(self):
 		if len(d['from'].get()):
 			numberOfSubstitutions['structure'] += 1
 
+	# Non-match from Pr2* on Pr1... adds Pr1... to pool even if Pr1* already matched that plan
+
 	for plan in self.plansBefore:
 		new_plan = plan
+		matched = False
 		for d in self.planSubstituteList:
 			if len(d['from'].get()):
-				new_plan = sub(d['from'].get(), d['to'].get(), plan)
-				self.plansAfter.add(new_plan)
+				if match(d['from'].get(), plan):
+					new_plan = sub(d['from'].get(), d['to'].get(), plan)
+					self.plansAfter.add(new_plan)
+					matched = True
+					break
+
+		if not matched:
+			self.plansAfter.add(new_plan)
 
 	for structure in self.structuresBefore:
 		new_structure = structure
+		matched = False
 		for d in self.structureSubstituteList:
 			if len(d['from'].get()):
-				new_structure = sub(d['from'].get(), d['to'].get(), structure)
-				self.structuresAfter.add(new_structure)
+				if match(d['from'].get(), structure):
+					new_structure = sub(d['from'].get(), d['to'].get(), structure)
+					self.structuresAfter.add(new_structure)
+					matched = True
+					break
+		
+		if not matched:
+			self.structuresAfter.add(new_structure)
 
 	self.drawPlanAndStructureNames()
 
@@ -1569,27 +1585,21 @@ def calculateNewNamesCommand(self):
 def changeNamingQuitCommand(self):
 	self.window.destroy()
 
-
 def changeNamingQuitAndSaveCommand(self):
-	def sub(a,b,txt):
-		a = a.replace("*", ".*")
-		b = b.replace("*", ".*")
-		return re.sub(a,b,txt)
-	
 	for patientsInCohort in list(self.patients.values()):
 		for patient in list(patientsInCohort.patients.values()):
 				plan = patient.getPlan()
 				if plan not in self.plansAfter:
 					for d in self.planSubstituteList:
 						if len(d['from'].get()):
-								plan = sub(d['from'].get(), d['to'].get(), plan)
+							plan = sub(d['from'].get(), d['to'].get(), plan)
 					patient.setPlan(plan)
 
 				structure = patient.getStructure()
 				if structure not in self.structuresAfter:
 					for d in self.structureSubstituteList:
 						if len(d['from'].get()):
-								structure = sub(d['from'].get(), d['to'].get(), structure)
+							structure = sub(d['from'].get(), d['to'].get(), structure)
 					patient.setStructure(structure)
 	self.window.destroy()
 
@@ -1606,6 +1616,24 @@ def drawPlanAndStructureNames(self):
 	structureNamesBefore = ", ".join(sorted(list(self.structuresBefore)))
 	planNamesAfter = ", ".join(sorted(list(self.plansAfter)))
 	structureNamesAfter = ", ".join(sorted(list(self.structuresAfter)))
+
+	max_str_length = 400
+
+	if len(planNamesBefore) > max_str_length:
+		planNamesBefore = planNamesBefore[:max_str_length//2] + \
+			" [...] " + planNamesBefore[-max_str_length//2:]
+
+	if len(planNamesAfter) > max_str_length:
+		planNamesAfter = planNamesAfter[:max_str_length//2] + \
+			" [...] " + planNamesAfter[-max_str_length//2:]
+
+	if len(structureNamesBefore) > max_str_length:
+		structureNamesBefore = structureNamesBefore[:max_str_length//2] + \
+			" [...] " + structureNamesBefore[-max_str_length//2:]
+
+	if len(structureNamesAfter) > max_str_length:
+		structureNamesAfter = structureNamesAfter[:max_str_length//2] + \
+			" [...] " + structureNamesAfter[-max_str_length//2:]
 
 	self.planAndStructureNameVariable.set(f"Plan names before:\n{planNamesBefore}\n\nPlan names after:\n{planNamesAfter}"
 												f"\n\nStructure names before:\n{structureNamesBefore}\n\nStructure names after:\n{structureNamesAfter}")

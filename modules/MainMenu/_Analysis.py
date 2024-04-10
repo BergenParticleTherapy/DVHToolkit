@@ -154,10 +154,8 @@ def calculateAggregatedDVH(self):
 						tox[cohort] = []
 						notox[cohort] = []
 					if patient.getTox() >= self.options.toxLimit.get():
-						print(f"Adding tox for {name}")
 						tox[cohort].append(f"Volume_{name}")
 					else:
-						print(f"Adding notox for {name}")
 						notox[cohort].append(f"Volume_{name}")
 
 					namePx = name.split("_")[0]
@@ -230,11 +228,8 @@ def calculateAggregatedDVH(self):
 					else:
 						# newDVH gets very very large
 						newDVH = pd.DataFrame({"Dose": patient.dvh["Dose"], f"Volume_{name}": patient.dvh["Volume"]})
-						print(newDVH)
 						newDVH.set_index("Dose", inplace=True)
 						cohortDVH[cohort] = cohortDVH[cohort].merge(newDVH, how="outer", right_index=True, left_index=True)
-
-					print(name, len(cohortDVH[cohort]))
 
 				for cohort in cohorts:
 					cohortDVH[cohort] = cohortDVH[cohort].interpolate(method='index', limit_direction='backward', limit=100).fillna(0)
@@ -281,10 +276,7 @@ def calculateAggregatedDVH(self):
 						cohortDVH[cohort] = pd.DataFrame({"Dose": doses[cohort]["Dose"]})
 						cohortDVH[cohort].set_index("Dose", inplace=True)
 
-					print("cohortDVH[cohort]:", cohortDVH[cohort])
-
 					newDVH = pd.DataFrame({"Dose": patient.dvh["Dose"], f"Volume_{name}": patient.dvh["Volume"]})
-					print("newDVH", newDVH)
 					newDVH.set_index("Dose", inplace=True)
 					cohortDVH[cohort] = cohortDVH[cohort].merge(newDVH, how="left", on="Dose")
 
@@ -461,8 +453,16 @@ def calculateAggregatedDVH(self):
 		structures = sorted(set(structures_sorted), key=structures_sorted.index)
 
 		styleIdx = {k:idx for idx,k in enumerate(plans)}
-		stylesToUse = {'solid': "-", 'dotted': 'dotted', 'dashed': (0,(5,5)), 'dashdotted': (0,(3,5,1,5,1,5)),
-							'loosely dotted': (0, (1, 10)), 'loosely dashdotted': (0, (3, 10, 1, 10)), 'loosely dashed': (0, (5, 10))}
+		stylesToUse = {
+			'solid': "-", 
+			'dashed': (0,(5,5)), 
+			'dashdot': (0,(3,5,1,5,1,5)),
+			'loosely dashed': (0, (5, 10)),
+			'dotted': 'dotted', 
+			'loosely dotted': (0, (1, 10)), 
+			'loosely dashdotted': (0, (3, 10, 1, 10))
+		}
+
 		style = list(stylesToUse.values())
 		
 		plotsStructure = list()
@@ -497,16 +497,15 @@ def calculateAggregatedDVH(self):
 				if not self.useCustomAggregateDVHPlot:
 					plt.figure(figsize=(10,7.5), num = fignum)
 
-				# try:
-				# 	ls = style[styleIdx[plan]]
-				# except:
-				# 	ls = '-'
+				try:
+					ls = style[styleIdx[plan]]
+				except:
+					ls = '-'
 
-				ls = '-'
 				c = self.colorVarList[structure].get()
 
-				if len(plans) > 1 and len(structures) == 1:
-					c = colors[styleIdx[plan]]
+				# if len(plans) > 1 and len(structures) == 1:
+				# 	c = colors[styleIdx[plan]]
 
 				if ":" in c:
 					alpha1 = float(c.split(":")[-1])
@@ -558,9 +557,9 @@ def calculateAggregatedDVH(self):
 
 						plt.plot(v[f"Volume agg {qp_str} percentile"].index, 
 									v[f"Volume agg {qp_str} percentile"], 
-									linestyle="--", 
+									linestyle=ls,
 									color=c, 
-									linewidth=2, 
+									linewidth=0.5, 
 									label=f"{qp_str} percentile")
 					
 					if len(qps) > 1:
@@ -605,74 +604,64 @@ def calculateAggregatedDVH(self):
 				else:
 					for x in range(self.aggregateNcols.get()):
 						for y in range(self.aggregateNrows.get()):
-								xy = f"{x}{y}"
-								planMatches = self.aggregateGridOptions[xy]["planMatches"]
-								structureMatches = self.aggregateGridOptions[xy]["structureMatches"]
+							xy = f"{x}{y}"
+							planMatches = self.aggregateGridOptions[xy]["planMatches"]
+							structureMatches = self.aggregateGridOptions[xy]["structureMatches"]
 
-								if plan in planMatches and structure in structureMatches:
-									axs[y][x].plot(v["Volume agg"].index, v["Volume agg"],
-														linestyle=ls, color=c, linewidth=2, label=planLabel, alpha=1)
+							if plan in planMatches and structure in structureMatches:
+								axs[y][x].plot(v["Volume agg"].index, v["Volume agg"],
+													linestyle=ls, color=c, linewidth=2, label=planLabel, alpha=1)
 					
-									axs[y][x].set_xlabel("Dose [Gy]", fontsize=12)
-									axs[y][x].set_ylabel("Volume [%]", fontsize=12)
-									structureMatchesStr = ", ".join(structureMatches)
-									plt_type = self.dvhStyleVar1.get().capitalize()
-									axs[y][x].set_title(f"{plt_type} DVH for {structureMatchesStr}")
+								axs[y][x].set_xlabel("Dose [Gy]", fontsize=12)
+								axs[y][x].set_ylabel("Volume [%]", fontsize=12)
+								structureMatchesStr = ", ".join(structureMatches)
+								plt_type = self.dvhStyleVar1.get().capitalize()
+								axs[y][x].set_title(f"{plt_type} DVH for {structureMatchesStr}")
 								
 		cleaned_colorVarDict = { k:v.get().split(":")[0] for k,v in self.colorVarList.items() }
 
 		if self.dvhStyleSinglePlot.get():
 			if not self.useCustomAggregateDVHPlot:
-				try:
-					ls = style[styleIdx[k]]
-				except:
-					ls = "-"
-
 				if self.dvhStyleBlackPlot.get():
-					custom_lines = {k:Line2D([0], [0], color="k", ls=ls, lw=2) for k,v in zip(plans, colors)}
+					custom_lines = {k:Line2D([0], [0], color="k", ls=style[styleIdx[k]], lw=2) for k,v in zip(plans, colors)}
 					custom_lines2 = {k:Line2D([0], [0], color="k", ls="-", lw=2) for k,v in cleaned_colorVarDict.items()}
 
 				else:
 					if len(list(set(structures))) == 1: # Plan lines @ structure colors if one structure, black if more
-						custom_lines = {k:Line2D([0], [0], color=v, ls=ls, lw=2) \
-									for k,v in zip(plans, colors)}
 
-						if self.dvhStyleVarPercentile.get():
-							custom_lines[""] = Line2D([],[],linestyle='')
-							#for k,v in zip(plans, colors):
-							qps = self.dvhPercentileInterval.get().split(",")
-							for qp_raw in sorted(qps, reverse=True, key=int):
-								qp_str = perc(int(qp_raw))
-								custom_lines[f"{qp_str} percentile"] \
-										= Line2D([0], [0], color="k", ls="--", lw=2)
+						custom_lines = {k:Line2D([0], [0], 
+											color=self.colorVarList[structure].get(), 
+											ls=style[styleIdx[k]], lw=2) \
+											for k,v in zip(plans, colors)}
+
 					else:
-						custom_lines = {k:Line2D([0], [0], color="k", ls=ls, lw=2) \
+						custom_lines = {k:Line2D([0], [0], color="k", ls=style[styleIdx[k]], lw=2) \
 									for k,v in zip(plans, colors)}
-
-						if self.dvhStyleVarPercentile.get():
-							custom_lines[""] = Line2D([],[],linestyle='')
-							#for k,v in zip(plans, colors):
-							qps = self.dvhPercentileInterval.get().split(",")
-							for qp_raw in sorted(qps, reverse=True, key=int):
-								qp_str = perc(int(qp_raw))
-								custom_lines[f"{qp_str} percentile ({k})"] \
-										= Line2D([0], [0], color="k", ls="--", lw=2)
 
 					custom_lines2 = {k:Line2D([0], [0], color=v, ls="-", lw=2) \
 									for k,v in cleaned_colorVarDict.items()}
 
 					if self.dvhStyleVarPercentile.get():
-						custom_lines2[""] = Line2D([],[],linestyle='')
-						for k,v in cleaned_colorVarDict.items():
+						qps = self.dvhPercentileInterval.get().split(",")
+
+						if len(list(set(plans))) > 1:
+							custom_lines[""] = Line2D([],[],linestyle='')
+							for qp_raw in sorted(qps, reverse=True, key=int):
+								qp_str = perc(int(qp_raw))
+								custom_lines[f"{qp_str} percentile ({k})"] \
+										= Line2D([0], [0], color="k", ls='-', lw=0.5)
+						else:
+							custom_lines2[""] = Line2D([],[],linestyle='')
 							qp_raw = self.dvhPercentileInterval.get().split(",")
 							for qp_raw in sorted(qps, reverse=True, key=int):
 								qp_str = perc(int(qp_raw))
 								custom_lines2[f"{qp_str} percentile ({k})"] \
-											= Line2D([0], [0], color="k", ls="--", lw=2)
+											= Line2D([0], [0], color="k", ls='-', lw=0.5)
 
 				all_legends = list(custom_lines.values()) + [Line2D([],[],linestyle='')] \
 									+ list(custom_lines2.values())
 				all_labels = list(custom_lines.keys()) + [''] + list(custom_lines2.keys())
+
 				if len(list(set(structures))) == 1:
 					all_legends = list(custom_lines.values())
 					all_labels = list(custom_lines.keys())
@@ -718,19 +707,14 @@ def calculateAggregatedDVH(self):
 													handlelength=3)
 
 		else: # self.dvhStyleSinglePlot.get() == False
-			try:
-				ls = style[styleIdx[k]]
-			except:
-				ls = "-"
-
 			if self.dvhStyleBlackPlot.get():
-				custom_lines = {k:Line2D([0], [0], color="k", ls=ls, lw=2) for k,v in zip(plans, colors)}
-				custom_lines2 = {k:Line2D([0], [0], color="k", ls="-", lw=2) for k,v in cleaned_colorVarDict.items()}
+				custom_lines = {k:Line2D([0], [0], color="k", ls=style[styleIdx[k]], lw=2) for k,v in zip(plans, colors)}
 
 			else:
 				# Loop through plot numbers
 				for structure in structures_sorted:
-					custom_lines = {k:Line2D([0], [0], color=v, ls=ls, lw=2) \
+					c = self.colorVarList[structure].get()
+					custom_lines = {k:Line2D([0], [0], color=c, ls=style[styleIdx[k]], lw=2) \
 								for k,v in zip(plans, colors)}
 
 					if self.dvhStyleVarPercentile.get():
@@ -740,11 +724,13 @@ def calculateAggregatedDVH(self):
 						for qp_raw in sorted(qps, reverse=True, key=int):
 							qp_str = perc(int(qp_raw))
 							custom_lines[f"{qp_str} percentile"] \
-									= Line2D([0], [0], color="k", ls="--", lw=2)
+									= Line2D([0], [0], color=c, ls='-', lw=0.5)
 					
 					all_legends = list(custom_lines.values())
 					all_labels = list(custom_lines.keys())
 
+					# Change to correct plot number
+					plt.figure(structure)
 					plt.legend(all_legends, all_labels, handlelength=3)
 		plt.show()
 				
@@ -778,15 +764,12 @@ def calculateAggregatedDVH(self):
 					cohortSum[plan][cohort] = pd.DataFrame(cohortDVH[cohort].index \
 															* cohortDVH[cohort]["Volume agg"])
 					cohortSum[plan][cohort] = cohortSum[plan][cohort].sum().sum()
-					print(f"Cohort {cohort} has a sum of {cohortSum[plan][cohort]}")
 
 				cohortSum[plan] = np.sum(list(cohortSum[plan].values()))
-				print(f"Plan {plan} has a total sum of {cohortSum[plan]}")
 
 		sorted_by_value = sorted(cohortSum.items(), key=lambda kv: kv[1], reverse=True)
 		kLarge = sorted_by_value[1][0]
 		kSmall = sorted_by_value[0][0]
-		print(f"Highest-dose plan (across all structures): {kLarge}")
 
 		pd.set_option('display.max_columns', None)  
 
